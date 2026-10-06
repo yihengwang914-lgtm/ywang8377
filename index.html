@@ -57,9 +57,9 @@ const COURSES = {
   COM5501:{name:"COM5501", subtitle:"Internet Communication"}
 };
 const BASE_WORDS = [];
-let customWords = JSON.parse(localStorage.getItem("customWords") || "[]");
+let customWords = [];
 let WORDS = [...BASE_WORDS, ...customWords];
-const saveWords=()=>localStorage.setItem("customWords", JSON.stringify(customWords));
+const saveWords=()=>{};
 
 
 const SUPABASE_URL="https://lgluwowzuwsabedbyblr.supabase.co";
