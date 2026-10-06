@@ -5,24 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Semester Vocabulary</title>
 <style>
-:root{--bg:#f7f5ef;--ink:#252522;--muted:#77736b;--line:#d9d4c9;--card:#fbfaf6;--dark:#292927;--red:#d85b50;--green:#238b57}
-*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman","Noto Serif SC",serif}
-header{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5vw;background:#f8f6f1;position:sticky;top:0;z-index:10}
-.brand{font-size:20px;font-weight:700;letter-spacing:.2px}.top{display:flex;gap:22px;align-items:center;font-family:Arial,sans-serif;font-size:13px}
-button{font:inherit}.linkbtn{border:0;background:none;cursor:pointer}.sync{font-weight:700}.sync.off{color:var(--red)}.sync.on{color:var(--green)}
-main{max-width:1280px;margin:0 auto;padding:42px 5vw 70px}.hero{text-align:center;margin:18px 0 54px}.hero h1{font-size:52px;margin:0 0 14px}.hero p{color:var(--muted);font-style:italic}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}.course{min-height:238px;border:1px solid var(--line);background:var(--card);padding:32px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 8px 24px #00000008}
-.course:hover{transform:translateY(-2px)}.code{font-size:13px;color:var(--muted);font-family:Arial,sans-serif}.course h2{font-size:23px;margin:20px 0;line-height:1.25}.meta{font-size:13px;color:var(--muted);font-style:italic}
-.sectionHead{display:flex;align-items:center;gap:18px;margin-bottom:28px}.back{border:1px solid var(--line);background:#fff;padding:9px 13px;cursor:pointer}.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}.week{border:1px solid var(--line);background:var(--card);padding:24px;cursor:pointer}.week strong{font-size:20px}.week small{display:block;color:var(--muted);margin-top:10px}
-.panel{max-width:880px;margin:0 auto;border:1px solid var(--line);background:var(--card);padding:30px}.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1}
-input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);background:#fff;font:14px Arial,sans-serif}textarea{min-height:180px;resize:vertical}
-.primary{background:var(--dark);color:#fff;border:0;padding:12px 20px;cursor:pointer}.secondary{background:#fff;border:1px solid var(--line);padding:11px 18px;cursor:pointer}
-.notice{margin-top:14px;font:13px Arial,sans-serif;color:var(--green)}.danger{color:var(--red)}
-.list{margin-top:22px;border-top:1px solid var(--line)}.item{display:flex;justify-content:space-between;gap:20px;padding:13px 0;border-bottom:1px solid #e6e1d8;font:14px Arial,sans-serif}.item .zh{color:var(--muted)}
-.study{text-align:center;max-width:760px;margin:0 auto}.word{font-size:46px;margin:70px 0 40px}.choices{display:grid;grid-template-columns:1fr 1fr;gap:14px}.choice{padding:18px;border:1px solid var(--line);background:#fff;cursor:pointer}.bigBtns{display:flex;gap:18px;justify-content:center}.bigBtns button{min-width:160px;padding:16px}.answer{font-size:24px;margin:24px 0}.tabs{display:flex;gap:10px;margin-bottom:18px}.tabs button.active{background:var(--dark);color:#fff}
-.empty{text-align:center;color:var(--muted);padding:60px 0}
-@media(max-width:900px){.grid,.weeks{grid-template-columns:1fr 1fr}.hero h1{font-size:38px}}
-@media(max-width:560px){.grid,.weeks,.choices{grid-template-columns:1fr}.top{gap:8px;font-size:11px}header{padding:0 16px}.brand{font-size:16px}.hero h1{font-size:32px}}
+:root{--bg:#f5f2e8;--ink:#22221f;--muted:#77756e;--line:#ddd8cc;--card:#fbfaf6;--dark:#232320;--red:#a95d56;--green:#327d62}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif}
+header{max-width:960px;height:84px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 0;background:transparent}
+.brand{font-size:18px;font-weight:750;letter-spacing:-.2px}.top{display:flex;gap:10px;align-items:center;font-size:13px}
+button{font:inherit}.linkbtn{border:1px solid var(--line);background:rgba(255,255,255,.35);border-radius:999px;padding:9px 14px;cursor:pointer;color:var(--ink)}.sync{font-weight:500}.sync.off{color:var(--muted)}.sync.on{color:var(--muted)}.sync.off:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:7px}.sync.on:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:7px}
+main{max-width:960px;margin:0 auto;padding:24px 0 70px}.hero{text-align:left;margin:8px 0 28px}.hero h1{font-size:50px;line-height:.98;letter-spacing:-2.4px;margin:0 0 14px;font-weight:850;max-width:540px}.hero p{color:var(--muted);font-size:15px;margin:0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.course{min-height:182px;border:1px solid var(--line);border-radius:22px;background:var(--card);padding:24px 22px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;box-shadow:none;transition:.18s ease}.course:hover{transform:translateY(-2px);box-shadow:0 10px 25px #00000008}.code{font-size:13px;color:var(--muted)}.course h2{font-size:22px;margin:4px 0 0;line-height:1.05;letter-spacing:-.5px}.meta{font-size:13px;color:var(--muted)}
+.sectionHead{display:flex;align-items:center;gap:18px;margin-bottom:28px}.back{border:1px solid var(--line);border-radius:999px;background:#fff;padding:9px 13px;cursor:pointer}.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.week{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:22px;cursor:pointer}.week strong{font-size:19px}.week small{display:block;color:var(--muted);margin-top:10px}
+.panel{max-width:880px;margin:0 auto;border:1px solid var(--line);border-radius:22px;background:var(--card);padding:28px}.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:14px inherit}textarea{min-height:180px;resize:vertical}
+.primary{background:var(--dark);color:#fff;border:0;border-radius:12px;padding:12px 20px;cursor:pointer}.secondary{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 18px;cursor:pointer}
+.notice{margin-top:14px;font-size:13px;color:var(--green)}.danger{color:var(--red)}
+.list{margin-top:22px;border-top:1px solid var(--line)}.item{display:flex;justify-content:space-between;gap:20px;padding:13px 0;border-bottom:1px solid #e6e1d8;font-size:14px}.item .zh{color:var(--muted)}
+.study{text-align:center;max-width:760px;margin:0 auto}.word{font-size:46px;margin:70px 0 40px}.choices{display:grid;grid-template-columns:1fr 1fr;gap:14px}.choice{padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer}.bigBtns{display:flex;gap:18px;justify-content:center}.bigBtns button{min-width:160px;padding:16px}.answer{font-size:24px;margin:24px 0}.tabs{display:flex;gap:10px;margin-bottom:18px}.tabs button.active{background:var(--dark);color:#fff}.empty{text-align:center;color:var(--muted);padding:60px 0}
+.signature{text-align:center;color:#8a877f;font-size:12px;margin-top:46px;letter-spacing:.2px}
+@media(max-width:1000px){header,main{max-width:none;margin-left:5vw;margin-right:5vw}.grid,.weeks{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.grid,.weeks,.choices{grid-template-columns:1fr}.top{gap:5px;font-size:11px;flex-wrap:wrap;justify-content:flex-end}.linkbtn{padding:7px 9px}header{height:auto;padding:18px 0;align-items:flex-start}.brand{font-size:16px}.hero h1{font-size:40px}}
 </style>
 </head>
 <body>
@@ -77,8 +76,9 @@ function knownCount(c){return words.filter(w=>w.course===c&&progress[w.id]==="kn
 
 function showHome(){
  window._view={type:"home"};
- app.innerHTML=`<section class="hero"><h1>My Semester Vocabulary</h1><p>Four courses · 13 weeks each · Learn by recognition, not repetition.</p></section>
- <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${c}</div><h2>${n}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>`;
+ app.innerHTML=`<section class="hero"><h1>把专业词汇<br>真正记下来。</h1><p>按课程、Week 学习。快速过词、四选一测试，并自动整理生词与熟词。</p></section>
+ <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${n}</div><h2>${c}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>
+ <div class="signature">Semester Vocabulary · @王大葱</div>`;
 }
 function showWeeks(c){
  currentCourse=c;window._view={type:"weeks",c};
@@ -94,6 +94,23 @@ function showWeek(c,w){
  <button class="secondary" onclick="showManager('${c}',${w})">管理本周词汇</button></div></div>`;
 }
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function buildDistractors(cur){
+ const used=new Set([cur.zh]);
+ const result=[];
+ const groups=[
+   words.filter(w=>w.id!==cur.id&&w.course===cur.course&&Number(w.week)===Number(cur.week)),
+   words.filter(w=>w.id!==cur.id&&w.course===cur.course&&Number(w.week)!==Number(cur.week)),
+   words.filter(w=>w.id!==cur.id&&w.course!==cur.course)
+ ];
+ for(const group of groups){
+   for(const w of shuffle(group)){
+     const z=String(w.zh||"").trim();
+     if(z&&!used.has(z)){used.add(z);result.push(z)}
+     if(result.length===3)return result;
+   }
+ }
+ return result;
+}
 function startStudy(mode){
  currentMode=mode;queue=shuffle(words.filter(x=>x.course===currentCourse&&Number(x.week)===Number(currentWeek)));qIndex=0;
  if(!queue.length){app.innerHTML=`<div class="empty">本周还没有词汇。<br><br><button class="secondary" onclick="showManager('${currentCourse}',${currentWeek})">去导入</button></div>`;return}
@@ -103,9 +120,12 @@ function showQuestion(){
  current=queue[qIndex];
  if(!current){showWeek(currentCourse,currentWeek);return}
  if(currentMode==="choice"){
-   let pool=shuffle(words.filter(w=>w.id!==current.id).map(w=>w.zh));
-   let opts=shuffle([current.zh,...pool.filter((v,i,a)=>a.indexOf(v)===i).slice(0,3)]);
-   while(opts.length<4) opts.push("—");
+   const distractors=buildDistractors(current);
+   if(distractors.length<3){
+     app.innerHTML=`<div class="study"><div class="code">${currentCourse} · Week ${currentWeek}</div><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p class="meta">词库中不同中文释义不足 4 个，暂时无法生成有效四选一。</p><br><button class="secondary" onclick="nextQ()">下一个</button></div>`;
+     return;
+   }
+   let opts=shuffle([current.zh,...distractors]);
    app.innerHTML=`<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="choices">${opts.map(o=>`<button class="choice" onclick='answerChoice(${JSON.stringify(o)},${JSON.stringify(current.zh)})'>${esc(o)}</button>`).join("")}</div></div>`;
  }else{
    app.innerHTML=`<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="bigBtns"><button class="secondary" onclick="markUnknown()">不认识</button><button class="primary" onclick="revealKnown()">认识</button></div></div>`;
