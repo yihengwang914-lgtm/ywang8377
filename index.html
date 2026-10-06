@@ -257,25 +257,100 @@ async function addOne(){
    document.getElementById("men").value="";document.getElementById("mzh").value="";showNotice("notice1","已保存到云端："+en);renderCustomList();
  }catch(e){showNotice("notice1","云端保存失败，请检查网络。");}
 }
-async function bulkImport(){
- let course=document.getElementById("bc").value, week=Number(document.getElementById("bw").value), raw=document.getElementById("bulk").value.trim();
- if(!raw){showNotice("notice2","请先粘贴词表。");return}
- let items=[];
- raw.split(/\n+/).forEach(line=>{let parts=line.includes("	")?line.split("	"):line.split("|");if(parts.length>=2){let en=parts[0].trim(),zh=parts.slice(1).join(" ").trim();if(en&&zh)items.push({course,week,en,zh,type:"Professional term"})}});
- let count=0;
- for(const it of items){try{let row=await cloudInsert(it);customWords.push({id:1000000+Number(row.id),cloudRowId:row.id,...it});count++}catch(e){console.error(e)}}
- saveWords();freshWords();document.getElementById("bulk").value="";showNotice("notice2",`成功保存 ${count} 个词到云端。`);renderCustomList();
-}
-function renderCustomList(){
- let el=document.getElementById("customList"); if(!el)return;
- if(!customWords.length){el.innerHTML='<div class="empty">还没有自己添加的单词。</div>';return}
- el.innerHTML=customWords.slice().reverse().map(w=>`<div class="wordrow"><div><strong>${w.en}</strong><div class="meta">${w.course} · Week ${w.week}</div></div><div>${w.zh}</div><div class="meta">${w.type}</div><button class="danger-mini" onclick="deleteWord(${w.id})">删除</button></div>`).join("");
-}
-async function deleteWord(id){
- let w=customWords.find(x=>x.id===id); if(!w)return;
- try{await cloudDelete(w)}catch(e){alert("云端删除失败");return}
- customWords=customWords.filter(w=>w.id!==id); state.known=state.known.filter(x=>x!==id);state.unknown=state.unknown.filter(x=>x!==id);
- delete state.wrong[id];delete state.seen[id];saveWords();save();freshWords();renderCustomList();
+async function bulkImport() {
+  const course = document.getElementById("bc").value;
+  const week = Number(document.getElementById("bw").value);
+  const raw = document.getElementById("bulk").value.trim();
+
+  if (!raw) {
+    showNotice("notice2", "请先粘贴词表。");
+    return;
+  }
+
+  const items = [];
+
+  const lines = raw.split(/\r?\n/);
+
+  for (const line of lines) {
+    const cleanLine = line.trim();
+    if (!cleanLine) continue;
+
+    let parts;
+
+    if (cleanLine.includes("\t")) {
+      parts = cleanLine.split("\t");
+    } else if (cleanLine.includes("|")) {
+      parts = cleanLine.split("|");
+    } else {
+      const match = cleanLine.match(/^(.+?)\s{2,}(.+)$/);
+      if (match) {
+        parts = [match[1], match[2]];
+      } else {
+        continue;
+      }
+    }
+
+    if (parts.length >= 2) {
+      const en = parts[0].trim();
+      const zh = parts.slice(1).join(" ").trim();
+
+      if (en && zh) {
+        items.push({
+          course,
+          week,
+          en,
+          zh,
+          type: "Professional term"
+        });
+      }
+    }
+  }
+
+  if (items.length === 0) {
+    showNotice(
+      "notice2",
+      "没有识别到词汇。请使用：英文[TAB]中文 或 英文 | 中文"
+    );
+    return;
+  }
+
+  let count = 0;
+  let failed = 0;
+
+  for (const item of items) {
+    try {
+      const row = await cloudInsert(item);
+
+      customWords.push({
+        id: 1000000 + Number(row.id),
+        cloudRowId: row.id,
+        ...item
+      });
+
+      count++;
+    } catch (e) {
+      console.error("Import failed:", item, e);
+      failed++;
+    }
+  }
+
+  saveWords();
+  freshWords();
+  renderCustomList();
+
+  document.getElementById("bulk").value = "";
+
+  if (failed === 0) {
+    showNotice(
+      "notice2",
+      `成功保存 ${count} 个词到云端。`
+    );
+  } else {
+    showNotice(
+      "notice2",
+      `成功 ${count} 个，失败 ${failed} 个。`
+    );
+  }
 }
 function exportWords(){
  let data=JSON.stringify(customWords,null,2), blob=new Blob([data],{type:"application/json;charset=utf-8"}), a=document.createElement("a");
