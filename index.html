@@ -30,6 +30,12 @@ textarea{min-height:180px;resize:vertical}.full{grid-column:1/-1}.manage-actions
 .notice{padding:11px 13px;border-radius:13px;background:#edf4ef;color:var(--good);margin-top:12px;display:none}
 @media(max-width:650px){.formgrid{grid-template-columns:1fr}.wordrow{grid-template-columns:1fr}.full{grid-column:auto}}
 
+
+.cloudbadge{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-size:13px;color:var(--muted);background:var(--card)}
+.dot{width:8px;height:8px;border-radius:50%;background:#999}.dot.ok{background:#3d6d57}.dot.err{background:#9b5148}
+.cloudpanel{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;margin:0 0 18px}
+.codeinput{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em}
+
 </style>
 </head>
 <body>
@@ -123,14 +129,73 @@ let customWords = JSON.parse(localStorage.getItem("customWords") || "[]");
 let WORDS = [...BASE_WORDS, ...customWords];
 const saveWords=()=>localStorage.setItem("customWords", JSON.stringify(customWords));
 
+
+const SUPABASE_URL="https://lgluwowzuwsabedbyblr.supabase.co";
+const SUPABASE_KEY="sb_publishable_04dsccL9acJYdCafv99nYg_yRgMaQdB";
+const CLOUD_ID_KEY="vocabCloudId";
+let cloudId=localStorage.getItem(CLOUD_ID_KEY)||"";
+let cloudOnline=false;
+async function sb(path, options={}){
+  const r=await fetch(SUPABASE_URL+"/rest/v1/"+path, {
+    ...options,
+    headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":options.prefer||"",...(options.headers||{})}
+  });
+  if(!r.ok) throw new Error(await r.text());
+  let text=await r.text(); return text?JSON.parse(text):null;
+}
+function newCloudId(){
+  if(crypto.randomUUID) return crypto.randomUUID();
+  return "user-"+Date.now()+"-"+Math.random().toString(36).slice(2);
+}
+function setCloudId(id){cloudId=id.trim();localStorage.setItem(CLOUD_ID_KEY,cloudId)}
+async function ensureCloudId(){
+  if(!cloudId) setCloudId(newCloudId());
+  return cloudId;
+}
+async function cloudLoad(){
+  await ensureCloudId();
+  try{
+    let rows=await sb("vocabulary_data?device_user=eq."+encodeURIComponent(cloudId)+"&select=*");
+    let cloudCustom=[], known=[], unknown=[], wrong={}, seen={};
+    (rows||[]).forEach(r=>{
+      let wid=1000000+Number(r.id);
+      cloudCustom.push({id:wid,cloudRowId:r.id,course:r.course,week:r.week,en:r.english,zh:r.chinese,type:r.word_type||"Professional term"});
+      if(r.status==="known") known.push(wid); else if(r.status==="unknown") unknown.push(wid);
+      wrong[wid]=r.wrong_count||0;seen[wid]=r.seen_count||0;
+    });
+    customWords=cloudCustom; WORDS=[...BASE_WORDS,...customWords];
+    // Built-in words remain local; user-added words are cloud-synced.
+    let localKnown=state.known.filter(id=>id<1000000), localUnknown=state.unknown.filter(id=>id<1000000);
+    state.known=[...localKnown,...known];state.unknown=[...localUnknown,...unknown];
+    Object.assign(state.wrong,wrong);Object.assign(state.seen,seen);
+    saveWords();save();cloudOnline=true;return true;
+  }catch(e){console.error(e);cloudOnline=false;return false}
+}
+async function cloudInsert(item){
+  await ensureCloudId();
+  let rows=await sb("vocabulary_data",{method:"POST",prefer:"return=representation",body:JSON.stringify({
+    device_user:cloudId,course:item.course,week:item.week,english:item.en,chinese:item.zh,word_type:item.type,status:"new",wrong_count:0,seen_count:0
+  })});
+  return rows&&rows[0];
+}
+async function cloudPatchWord(w){
+  if(!w.cloudRowId)return;
+  let status=state.known.includes(w.id)?"known":state.unknown.includes(w.id)?"unknown":"new";
+  await sb("vocabulary_data?id=eq."+w.cloudRowId,{method:"PATCH",body:JSON.stringify({status,wrong_count:state.wrong[w.id]||0,seen_count:state.seen[w.id]||0})});
+}
+async function cloudDelete(w){
+  if(w.cloudRowId) await sb("vocabulary_data?id=eq."+w.cloudRowId,{method:"DELETE"});
+}
+
 let state = JSON.parse(localStorage.getItem("vocabState")||'{"known":[],"unknown":[],"wrong":{},"seen":{}}');
 let route={page:"home"}, session=null;
 const save=()=>localStorage.setItem("vocabState",JSON.stringify(state));
 const app=document.querySelector("#app");
+new MutationObserver(()=>setTimeout(updateCloudBadge,0)).observe(app,{childList:true,subtree:true});
 const weeks=Array.from({length:13},(_,i)=>i+1);
 
 function header(back){
- return `<div class="top"><div class="brand">Semester Vocabulary</div><div class="small-actions">${back?`<button class="ghost" onclick="goBack()">← 返回</button>`:""}<button class="ghost" onclick="manageWords()">词库管理</button><button class="ghost" onclick="books()">生词本 / 熟词本</button></div></div>`;
+ return `<div class="top"><div class="brand">Semester Vocabulary</div><div class="small-actions">${back?`<button class="ghost" onclick="goBack()">← 返回</button>`:""}<span class="cloudbadge"><i id="clouddot" class="dot"></i><span id="cloudtxt">云端</span></span><button class="ghost" onclick="syncNow()">同步</button><button class="ghost" onclick="manageWords()">词库管理</button><button class="ghost" onclick="books()">生词本 / 熟词本</button></div></div>`;
 }
 function progressFor(course){
  let ws=WORDS.filter(w=>w.course===course), done=ws.filter(w=>state.known.includes(w.id)).length;
@@ -184,7 +249,7 @@ function answer(i){
  state.seen[x.id]=(state.seen[x.id]||0)+1;
  if(correct){s.score++;if(!state.known.includes(x.id))state.known.push(x.id);state.unknown=state.unknown.filter(id=>id!==x.id)}
  else{if(!state.unknown.includes(x.id))state.unknown.push(x.id);state.known=state.known.filter(id=>id!==x.id);state.wrong[x.id]=(state.wrong[x.id]||0)+1}
- save();setTimeout(next,850);
+ save();cloudPatchWord(x).catch(console.error);setTimeout(next,850);
 }
 function next(){session.i++;session.phase="ask";session.opts=null;renderStudy()}
 function finish(){
@@ -204,12 +269,21 @@ function showBook(type,el){
  b.innerHTML=`<div class="grid">${arr.map(w=>`<div class="bookcard"><div class="meta">${w.course} · Week ${w.week} · ${w.type}</div><h2>${w.en}</h2><div>${w.zh}</div><div class="meta" style="margin-top:10px">答错 ${state.wrong[w.id]||0} 次</div></div>`).join("")}</div>`;
 }
 
+async function syncNow(){
+ let ok=await cloudLoad();updateCloudBadge(); if(route.page==="home")home(); else if(route.page==="course")course(route.course); else if(route.page==="week")week(route.course,route.week); else if(route.page==="books")books(); else if(route.page==="manage")manageWords();
+}
+function updateCloudBadge(){let d=document.getElementById("clouddot"),t=document.getElementById("cloudtxt");if(d)d.className="dot "+(cloudOnline?"ok":"err");if(t)t.textContent=cloudOnline?"已同步":"未同步"}
+function copyCloudCode(){navigator.clipboard.writeText(cloudId).then(()=>alert("同步码已复制"))}
+async function useCloudCode(){let id=prompt("粘贴你另一台设备上的同步码：");if(!id)return;setCloudId(id);await syncNow()}
 function manageWords(){
  route={page:"manage"};
  let courseOpts=Object.keys(COURSES).map(c=>`<option value="${c}">${c}</option>`).join("");
  let weekOpts=weeks.map(w=>`<option value="${w}">Week ${w}</option>`).join("");
  app.innerHTML=`<div class="shell">${header(true)}
- <div class="section-title"><div><div class="meta">Add · Import · Edit</div><h1>词库管理</h1></div></div>
+ <div class="section-title"><div><div class="meta">Add · Import · Edit · Cloud</div><h1>词库管理</h1></div></div>
+ <div class="cloudpanel"><h2>跨设备同步码</h2><p class="meta">在其他设备打开同一网站后，把这里的同步码复制过去，就会读取同一份云端词库。不要公开分享这个同步码。</p>
+ <div class="formgrid"><div class="field full"><label>我的同步码</label><input class="codeinput" id="cloudCode" value="${cloudId}" readonly></div></div>
+ <div class="manage-actions"><button class="btn secondary" onclick="copyCloudCode()">复制同步码</button><button class="btn secondary" onclick="useCloudCode()">在这台设备输入已有同步码</button></div></div>
  <div class="managebox">
    <h2>添加一个单词</h2>
    <div class="formgrid">
@@ -240,32 +314,35 @@ function nextCustomId(){
  let ids=WORDS.map(w=>Number(w.id)||0); return Math.max(1000,...ids)+1;
 }
 function showNotice(id,msg){let n=document.getElementById(id);n.textContent=msg;n.style.display="block";setTimeout(()=>n.style.display="none",2500)}
-function addOne(){
+async function addOne(){
  let course=document.getElementById("mc").value, week=Number(document.getElementById("mw").value),
  en=document.getElementById("men").value.trim(), zh=document.getElementById("mzh").value.trim(), type=document.getElementById("mtype").value;
  if(!en||!zh){showNotice("notice1","请同时填写英文和中文。");return}
- let item={id:nextCustomId(),course,week,en,zh,type}; customWords.push(item);saveWords();freshWords();
- document.getElementById("men").value="";document.getElementById("mzh").value="";showNotice("notice1","已添加："+en);renderCustomList();
+ try{
+   let row=await cloudInsert({course,week,en,zh,type});
+   let item={id:1000000+Number(row.id),cloudRowId:row.id,course,week,en,zh,type};
+   customWords.push(item);saveWords();freshWords();
+   document.getElementById("men").value="";document.getElementById("mzh").value="";showNotice("notice1","已保存到云端："+en);renderCustomList();
+ }catch(e){showNotice("notice1","云端保存失败，请检查网络。");}
 }
-function bulkImport(){
+async function bulkImport(){
  let course=document.getElementById("bc").value, week=Number(document.getElementById("bw").value), raw=document.getElementById("bulk").value.trim();
  if(!raw){showNotice("notice2","请先粘贴词表。");return}
+ let items=[];
+ raw.split(/
++/).forEach(line=>{let parts=line.includes("	")?line.split("	"):line.split("|");if(parts.length>=2){let en=parts[0].trim(),zh=parts.slice(1).join(" ").trim();if(en&&zh)items.push({course,week,en,zh,type:"Professional term"})}});
  let count=0;
- raw.split(/\n+/).forEach(line=>{
-   let parts=line.includes("\t")?line.split("\t"):line.split("|");
-   if(parts.length>=2){
-     let en=parts[0].trim(), zh=parts.slice(1).join(" ").trim();
-     if(en&&zh){customWords.push({id:nextCustomId()+count,course,week,en,zh,type:"Professional term"});count++}
-   }
- });
- saveWords();freshWords();document.getElementById("bulk").value="";showNotice("notice2",`成功导入 ${count} 个词。`);renderCustomList();
+ for(const it of items){try{let row=await cloudInsert(it);customWords.push({id:1000000+Number(row.id),cloudRowId:row.id,...it});count++}catch(e){console.error(e)}}
+ saveWords();freshWords();document.getElementById("bulk").value="";showNotice("notice2",`成功保存 ${count} 个词到云端。`);renderCustomList();
 }
 function renderCustomList(){
  let el=document.getElementById("customList"); if(!el)return;
  if(!customWords.length){el.innerHTML='<div class="empty">还没有自己添加的单词。</div>';return}
  el.innerHTML=customWords.slice().reverse().map(w=>`<div class="wordrow"><div><strong>${w.en}</strong><div class="meta">${w.course} · Week ${w.week}</div></div><div>${w.zh}</div><div class="meta">${w.type}</div><button class="danger-mini" onclick="deleteWord(${w.id})">删除</button></div>`).join("");
 }
-function deleteWord(id){
+async function deleteWord(id){
+ let w=customWords.find(x=>x.id===id); if(!w)return;
+ try{await cloudDelete(w)}catch(e){alert("云端删除失败");return}
  customWords=customWords.filter(w=>w.id!==id); state.known=state.known.filter(x=>x!==id);state.unknown=state.unknown.filter(x=>x!==id);
  delete state.wrong[id];delete state.seen[id];saveWords();save();freshWords();renderCustomList();
 }
