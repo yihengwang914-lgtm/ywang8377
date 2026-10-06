@@ -1,365 +1,187 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta name="theme-color" content="#f5f2ea"/>
-  <title>Semester Vocabulary</title>
-  <style>
-
-:root{--bg:#f5f2ea;--card:#fffdf8;--ink:#20211f;--muted:#7a7b75;--line:#dedbd1;--accent:#20211f;--good:#3d6d57;--bad:#9b5148;--soft:#ebe7dc}
-*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink)}
-button{font:inherit}.shell{max-width:980px;margin:auto;padding:28px 20px 70px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}.brand{font-size:20px;font-weight:750;letter-spacing:.02em}.ghost{border:1px solid var(--line);background:transparent;border-radius:999px;padding:9px 14px;cursor:pointer}
-.hero{margin:35px 0 28px}.hero h1{font-size:clamp(34px,6vw,66px);line-height:1;margin:0 0 12px;letter-spacing:-.04em}.hero p{color:var(--muted);font-size:17px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.course,.week,.mode,.bookcard{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;cursor:pointer;transition:.15s}.course:hover,.week:hover,.mode:hover,.bookcard:hover{transform:translateY(-2px);box-shadow:0 8px 24px #0000000c}.course h2,.week h3{margin:0 0 8px}.meta{color:var(--muted);font-size:14px}.bar{height:7px;background:var(--soft);border-radius:99px;overflow:hidden;margin-top:18px}.bar i{display:block;height:100%;background:var(--ink)}
-.section-title{display:flex;align-items:end;justify-content:space-between;margin:22px 0 16px}.section-title h1{margin:0;font-size:34px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.pill{border:1px solid var(--line);background:var(--card);padding:10px 15px;border-radius:999px;cursor:pointer}.pill.active{background:var(--ink);color:white}
-.study{max-width:700px;margin:35px auto}.progress{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:14px;margin-bottom:16px}.progress .bar{flex:1;margin:0}
-.card{min-height:410px;background:var(--card);border:1px solid var(--line);border-radius:28px;padding:42px 34px;display:flex;flex-direction:column;justify-content:center;text-align:center;box-shadow:0 12px 40px #00000008}.word{font-size:clamp(38px,8vw,70px);font-weight:760;letter-spacing:-.035em}.tag{margin-top:13px;color:var(--muted)}.meaning{font-size:30px;font-weight:650;margin-top:30px}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.btn{border:0;border-radius:18px;padding:18px;cursor:pointer;font-weight:700;background:var(--ink);color:white}.btn.secondary{background:var(--card);color:var(--ink);border:1px solid var(--line)}.btn.bad{background:var(--bad)}.btn.good{background:var(--good)}
-.options{display:grid;gap:11px;margin-top:28px}.option{border:1px solid var(--line);background:white;border-radius:16px;padding:16px;text-align:left;cursor:pointer}.option.correct{border-color:var(--good);background:#edf4ef}.option.wrong{border-color:var(--bad);background:#f8ecea}
-.done{text-align:center;padding:80px 20px}.done h1{font-size:44px}.stats{display:flex;justify-content:center;gap:25px;color:var(--muted);margin:20px 0 30px}.small-actions{display:flex;gap:8px;flex-wrap:wrap}.empty{padding:55px;text-align:center;color:var(--muted);background:var(--card);border:1px dashed var(--line);border-radius:22px}
-@media(max-width:600px){.shell{padding:20px 14px 55px}.card{min-height:360px;padding:30px 20px}.actions{grid-template-columns:1fr}.top{margin-bottom:20px}}
-
-
-.managebox{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;margin-bottom:16px}
-.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:7px}.field label{font-size:13px;color:var(--muted)}
-input,select,textarea{width:100%;border:1px solid var(--line);background:white;border-radius:14px;padding:13px;font:inherit;color:var(--ink)}
-textarea{min-height:180px;resize:vertical}.full{grid-column:1/-1}.manage-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-.wordrow{display:grid;grid-template-columns:1.2fr 1.2fr .65fr auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
-.wordrow:last-child{border-bottom:0}.danger-mini{border:1px solid #e5c8c4;background:#fff5f3;color:var(--bad);border-radius:12px;padding:8px 10px;cursor:pointer}
-.notice{padding:11px 13px;border-radius:13px;background:#edf4ef;color:var(--good);margin-top:12px;display:none}
-@media(max-width:650px){.formgrid{grid-template-columns:1fr}.wordrow{grid-template-columns:1fr}.full{grid-column:auto}}
-
-
-.cloudbadge{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-size:13px;color:var(--muted);background:var(--card)}
-.dot{width:8px;height:8px;border-radius:50%;background:#999}.dot.ok{background:#3d6d57}.dot.err{background:#9b5148}
-.cloudpanel{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;margin:0 0 18px}
-.codeinput{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em}
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Semester Vocabulary</title>
+<style>
+:root{--bg:#f7f5ef;--ink:#252522;--muted:#77736b;--line:#d9d4c9;--card:#fbfaf6;--dark:#292927;--red:#d85b50;--green:#238b57}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman","Noto Serif SC",serif}
+header{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5vw;background:#f8f6f1;position:sticky;top:0;z-index:10}
+.brand{font-size:20px;font-weight:700;letter-spacing:.2px}.top{display:flex;gap:22px;align-items:center;font-family:Arial,sans-serif;font-size:13px}
+button{font:inherit}.linkbtn{border:0;background:none;cursor:pointer}.sync{font-weight:700}.sync.off{color:var(--red)}.sync.on{color:var(--green)}
+main{max-width:1280px;margin:0 auto;padding:42px 5vw 70px}.hero{text-align:center;margin:18px 0 54px}.hero h1{font-size:52px;margin:0 0 14px}.hero p{color:var(--muted);font-style:italic}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}.course{min-height:238px;border:1px solid var(--line);background:var(--card);padding:32px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 8px 24px #00000008}
+.course:hover{transform:translateY(-2px)}.code{font-size:13px;color:var(--muted);font-family:Arial,sans-serif}.course h2{font-size:23px;margin:20px 0;line-height:1.25}.meta{font-size:13px;color:var(--muted);font-style:italic}
+.sectionHead{display:flex;align-items:center;gap:18px;margin-bottom:28px}.back{border:1px solid var(--line);background:#fff;padding:9px 13px;cursor:pointer}.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}.week{border:1px solid var(--line);background:var(--card);padding:24px;cursor:pointer}.week strong{font-size:20px}.week small{display:block;color:var(--muted);margin-top:10px}
+.panel{max-width:880px;margin:0 auto;border:1px solid var(--line);background:var(--card);padding:30px}.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);background:#fff;font:14px Arial,sans-serif}textarea{min-height:180px;resize:vertical}
+.primary{background:var(--dark);color:#fff;border:0;padding:12px 20px;cursor:pointer}.secondary{background:#fff;border:1px solid var(--line);padding:11px 18px;cursor:pointer}
+.notice{margin-top:14px;font:13px Arial,sans-serif;color:var(--green)}.danger{color:var(--red)}
+.list{margin-top:22px;border-top:1px solid var(--line)}.item{display:flex;justify-content:space-between;gap:20px;padding:13px 0;border-bottom:1px solid #e6e1d8;font:14px Arial,sans-serif}.item .zh{color:var(--muted)}
+.study{text-align:center;max-width:760px;margin:0 auto}.word{font-size:46px;margin:70px 0 40px}.choices{display:grid;grid-template-columns:1fr 1fr;gap:14px}.choice{padding:18px;border:1px solid var(--line);background:#fff;cursor:pointer}.bigBtns{display:flex;gap:18px;justify-content:center}.bigBtns button{min-width:160px;padding:16px}.answer{font-size:24px;margin:24px 0}.tabs{display:flex;gap:10px;margin-bottom:18px}.tabs button.active{background:var(--dark);color:#fff}
+.empty{text-align:center;color:var(--muted);padding:60px 0}
+@media(max-width:900px){.grid,.weeks{grid-template-columns:1fr 1fr}.hero h1{font-size:38px}}
+@media(max-width:560px){.grid,.weeks,.choices{grid-template-columns:1fr}.top{gap:8px;font-size:11px}header{padding:0 16px}.brand{font-size:16px}.hero h1{font-size:32px}}
 </style>
 </head>
 <body>
-<div id="fatal" style="display:none;max-width:760px;margin:40px auto;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-<h2>页面加载出现问题</h2><p id="fatalmsg"></p></div>
+<header>
+  <div class="brand" onclick="showHome()" style="cursor:pointer">Semester Vocabulary</div>
+  <div class="top">
+    <button id="syncState" class="linkbtn sync off" onclick="syncNow()">● 未同步</button>
+    <button class="linkbtn" onclick="syncNow()">同步</button>
+    <button class="linkbtn" onclick="showManager()">词库管理</button>
+    <button class="linkbtn" onclick="showBook('unknown')">生词本</button>
+    <button class="linkbtn" onclick="showBook('known')">熟词本</button>
+  </div>
+</header>
+<main id="app"></main>
 <script>
-window.addEventListener('error', function(e){
-  var f=document.getElementById('fatal'); if(f){f.style.display='block';}
-  var m=document.getElementById('fatalmsg'); if(m){m.textContent=e.message || '未知错误';}
-});
-</script>
-<div id="app"></div>
-<script>
-
-const COURSES = {
-  COM5101:{name:"COM5101", subtitle:"Communication Fundamental"},
-  COM5103:{name:"COM5103", subtitle:"Policy and Regulations of New Media"},
-  COM5104:{name:"COM5104", subtitle:"Research Methods for Communication and New Media"},
-  COM5501:{name:"COM5501", subtitle:"Internet Communication"}
-};
-const BASE_WORDS = [];
-let customWords = [];
-let WORDS = [...BASE_WORDS, ...customWords];
-const saveWords=()=>{};
-
-
 const SUPABASE_URL="https://lgluwowzuwsabedbyblr.supabase.co";
 const SUPABASE_KEY="sb_publishable_04dsccL9acJYdCafv99nYg_yRgMaQdB";
-const CLOUD_ID_KEY="vocabCloudId";
-let cloudId=localStorage.getItem(CLOUD_ID_KEY)||"";
+const COURSES={
+ COM5103:"Policy and Regulations of New Media",
+ COM5101:"Communication Fundamental",
+ COM5501:"Internet Communication",
+ COM5104:"Research Methods for Communication and New Media"
+};
+let words=[];
+let currentCourse="COM5103",currentWeek=1,currentMode="choice",queue=[],qIndex=0,current=null;
+let progress=JSON.parse(localStorage.getItem("studyProgress")||"{}");
 let cloudOnline=false;
-async function sb(path, options={}){
-  const r=await fetch(SUPABASE_URL+"/rest/v1/"+path, {
-    ...options,
-    headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":options.prefer||"",...(options.headers||{})}
-  });
-  if(!r.ok) throw new Error(await r.text());
-  let text=await r.text(); return text?JSON.parse(text):null;
-}
-function newCloudId(){
-  if(crypto.randomUUID) return crypto.randomUUID();
-  return "user-"+Date.now()+"-"+Math.random().toString(36).slice(2);
-}
-function setCloudId(id){cloudId=id.trim();localStorage.setItem(CLOUD_ID_KEY,cloudId)}
-async function ensureCloudId(){
-  if(!cloudId) setCloudId(newCloudId());
-  return cloudId;
-}
-async function cloudLoad(){
-  await ensureCloudId();
-  try{
-    let rows=await sb("vocabulary_data?device_user=eq."+encodeURIComponent(cloudId)+"&select=*");
-    let cloudCustom=[], known=[], unknown=[], wrong={}, seen={};
-    (rows||[]).forEach(r=>{
-      let wid=1000000+Number(r.id);
-      cloudCustom.push({id:wid,cloudRowId:r.id,course:r.course,week:r.week,en:r.english,zh:r.chinese,type:r.word_type||"Professional term"});
-      if(r.status==="known") known.push(wid); else if(r.status==="unknown") unknown.push(wid);
-      wrong[wid]=r.wrong_count||0;seen[wid]=r.seen_count||0;
-    });
-    customWords=cloudCustom; WORDS=[...BASE_WORDS,...customWords];
-    // Built-in words remain local; user-added words are cloud-synced.
-    let localKnown=state.known.filter(id=>id<1000000), localUnknown=state.unknown.filter(id=>id<1000000);
-    state.known=[...localKnown,...known];state.unknown=[...localUnknown,...unknown];
-    Object.assign(state.wrong,wrong);Object.assign(state.seen,seen);
-    saveWords();save();cloudOnline=true;return true;
-  }catch(e){console.error(e);cloudOnline=false;return false}
-}
-async function cloudInsert(item){
-  await ensureCloudId();
-  let rows=await sb("vocabulary_data",{method:"POST",prefer:"return=representation",body:JSON.stringify({
-    device_user:cloudId,course:item.course,week:item.week,english:item.en,chinese:item.zh,word_type:item.type,status:"new",wrong_count:0,seen_count:0
-  })});
-  return rows&&rows[0];
-}
-async function cloudPatchWord(w){
-  if(!w.cloudRowId)return;
-  let status=state.known.includes(w.id)?"known":state.unknown.includes(w.id)?"unknown":"new";
-  await sb("vocabulary_data?id=eq."+w.cloudRowId,{method:"PATCH",body:JSON.stringify({status,wrong_count:state.wrong[w.id]||0,seen_count:state.seen[w.id]||0})});
-}
-async function cloudDelete(w){
-  if(w.cloudRowId) await sb("vocabulary_data?id=eq."+w.cloudRowId,{method:"DELETE"});
-}
+const app=document.getElementById("app");
+const syncState=document.getElementById("syncState");
 
-let state = JSON.parse(localStorage.getItem("vocabState")||'{"known":[],"unknown":[],"wrong":{},"seen":{}}');
-let route={page:"home"}, session=null;
-const save=()=>localStorage.setItem("vocabState",JSON.stringify(state));
-const app=document.querySelector("#app");
-new MutationObserver(()=>setTimeout(updateCloudBadge,0)).observe(app,{childList:true,subtree:true});
-const weeks=Array.from({length:13},(_,i)=>i+1);
-
-function header(back){
- return `<div class="top"><div class="brand">Semester Vocabulary</div><div class="small-actions">${back?`<button class="ghost" onclick="goBack()">← 返回</button>`:""}<span class="cloudbadge"><i id="clouddot" class="dot"></i><span id="cloudtxt">云端</span></span><button class="ghost" onclick="syncNow()">同步</button><button class="ghost" onclick="manageWords()">词库管理</button><button class="ghost" onclick="books()">生词本 / 熟词本</button></div></div>`;
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function saveProgress(){localStorage.setItem("studyProgress",JSON.stringify(progress))}
+function setSync(ok){cloudOnline=ok;syncState.className="linkbtn sync "+(ok?"on":"off");syncState.textContent=ok?"● 已同步":"● 未同步"}
+async function sb(path,opt={}){
+ const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{...opt,headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=representation",...(opt.headers||{})}});
+ if(!r.ok) throw new Error(await r.text());
+ const t=await r.text(); return t?JSON.parse(t):[];
 }
-function progressFor(course){
- let ws=WORDS.filter(w=>w.course===course), done=ws.filter(w=>state.known.includes(w.id)).length;
- return [done,ws.length,ws.length?Math.round(done/ws.length*100):0];
-}
-function home(){
- route={page:"home"};
- let cards=Object.values(COURSES).map(c=>{let [d,t,p]=progressFor(c.name);return `<div class="course" onclick="course('${c.name}')"><div class="meta">${c.subtitle}</div><h2>${c.name}</h2><div class="meta">${t?t+" 个词汇已录入":"等待录入词汇"} · 熟词 ${d}</div><div class="bar"><i style="width:${p}%"></i></div></div>`}).join("");
- app.innerHTML=`<div class="shell">${header(false)}<div class="hero"><h1>把专业词汇<br>真正记下来。</h1><p>按课程、Week 学习。快速过词、四选一测试，并自动整理生词与熟词。</p></div><div class="grid">${cards}</div></div>`;
-}
-function course(c){
- route={page:"course",course:c};
- let cards=weeks.map(w=>{let arr=WORDS.filter(x=>x.course===c&&x.week===w);let done=arr.filter(x=>state.known.includes(x.id)).length;let p=arr.length?done/arr.length*100:0;return `<div class="week" onclick="${arr.length?`week('${c}',${w})`:""}"><h3>Week ${w}</h3><div class="meta">${arr.length?`${arr.length} 个词 · 熟词 ${done}`:"尚未录入"}</div><div class="bar"><i style="width:${p}%"></i></div></div>`}).join("");
- app.innerHTML=`<div class="shell">${header(true)}<div class="section-title"><div><div class="meta">${COURSES[c].subtitle}</div><h1>${c}</h1></div></div><div class="grid">${cards}</div></div>`;
-}
-function week(c,w){
- route={page:"week",course:c,week:w};
- let n=WORDS.filter(x=>x.course===c&&x.week===w).length;
- app.innerHTML=`<div class="shell">${header(true)}<div class="section-title"><div><div class="meta">${c}</div><h1>Week ${w}</h1><div class="meta">${n} 个词汇</div></div></div><div class="grid"><div class="mode" onclick="start('${c}',${w},'recognize')"><h2>快速过词</h2><p class="meta">英文 → 认识 / 不认识 → 核对中文 → 我错了 / 我没错</p></div><div class="mode" onclick="start('${c}',${w},'quiz')"><h2>四选一</h2><p class="meta">显示英文，从四个中文释义中选择正确答案。</p></div></div></div>`;
-}
-function start(c,w,mode,custom=null){
- let words=custom||WORDS.filter(x=>x.course===c&&x.week===w);
- session={c,w,mode,words:[...words].sort(()=>Math.random()-.5),i:0,phase:"ask",score:0};
- renderStudy();
-}
-function renderStudy(){
- let s=session, x=s.words[s.i];
- if(!x){return finish()}
- let pct=Math.round(s.i/s.words.length*100);
- let body="";
- if(s.mode==="recognize"){
-   body=`<div class="card"><div class="word">${x.en}</div><div class="tag">${x.type} · ${x.course} · Week ${x.week}</div>${s.phase==="reveal"?`<div class="meaning">${x.zh}</div>`:""}</div>`;
-   if(s.phase==="ask") body+=`<div class="actions"><button class="btn bad" onclick="dontKnow()">不认识</button><button class="btn" onclick="know()">认识</button></div>`;
-   else body+=`<div class="actions"><button class="btn bad" onclick="verify(false)">我错了</button><button class="btn good" onclick="verify(true)">我没错</button></div>`;
- } else {
-   if(!s.opts) s.opts=makeOptions(x);
-   body=`<div class="card"><div class="word">${x.en}</div><div class="tag">${x.type} · ${x.course} · Week ${x.week}</div><div class="options">${s.opts.map((o,i)=>`<button id="op${i}" class="option" onclick="answer(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join("")}</div></div>`;
- }
- app.innerHTML=`<div class="shell"><div class="study"><div class="progress"><span>${s.i+1} / ${s.words.length}</span><div class="bar"><i style="width:${pct}%"></i></div><button class="ghost" onclick="week('${s.c}',${s.w})">退出</button></div>${body}</div></div>`;
-}
-function know(){session.phase="reveal";renderStudy()}
-function dontKnow(){let x=session.words[session.i];if(!state.unknown.includes(x.id))state.unknown.push(x.id);state.known=state.known.filter(id=>id!==x.id);state.seen[x.id]=(state.seen[x.id]||0)+1;save();next()}
-function verify(ok){let x=session.words[session.i];state.seen[x.id]=(state.seen[x.id]||0)+1;if(ok){if(!state.known.includes(x.id))state.known.push(x.id);state.unknown=state.unknown.filter(id=>id!==x.id);session.score++}else{if(!state.unknown.includes(x.id))state.unknown.push(x.id);state.known=state.known.filter(id=>id!==x.id);state.wrong[x.id]=(state.wrong[x.id]||0)+1}save();next()}
-function makeOptions(x){
- let pool=WORDS.filter(w=>w.id!==x.id).map(w=>w.zh).filter((v,i,a)=>a.indexOf(v)===i).sort(()=>Math.random()-.5).slice(0,3);
- return [...pool,x.zh].sort(()=>Math.random()-.5);
-}
-function answer(i){
- let s=session,x=s.words[s.i], correct=s.opts[i]===x.zh;
- document.querySelectorAll(".option").forEach((b,j)=>{b.disabled=true;if(s.opts[j]===x.zh)b.classList.add("correct");else if(j===i)b.classList.add("wrong")});
- state.seen[x.id]=(state.seen[x.id]||0)+1;
- if(correct){s.score++;if(!state.known.includes(x.id))state.known.push(x.id);state.unknown=state.unknown.filter(id=>id!==x.id)}
- else{if(!state.unknown.includes(x.id))state.unknown.push(x.id);state.known=state.known.filter(id=>id!==x.id);state.wrong[x.id]=(state.wrong[x.id]||0)+1}
- save();cloudPatchWord(x).catch(console.error);setTimeout(next,850);
-}
-function next(){session.i++;session.phase="ask";session.opts=null;renderStudy()}
-function finish(){
- let s=session;
- app.innerHTML=`<div class="shell">${header(false)}<div class="done"><div class="meta">${s.c} · Week ${s.w}</div><h1>这一轮完成了。</h1><div class="stats"><span>共 ${s.words.length} 词</span><span>确认掌握 ${s.score}</span></div><button class="btn" onclick="week('${s.c}',${s.w})">返回 Week ${s.w}</button></div></div>`;
-}
-function books(){
- route={page:"books"};
- let unknown=WORDS.filter(w=>state.unknown.includes(w.id)), known=WORDS.filter(w=>state.known.includes(w.id));
- app.innerHTML=`<div class="shell">${header(true)}<div class="section-title"><h1>词汇本</h1></div><div class="tabs"><button class="pill active" onclick="showBook('unknown',this)">生词 ${unknown.length}</button><button class="pill" onclick="showBook('known',this)">熟词 ${known.length}</button></div><div id="book"></div></div>`;
- showBook("unknown");
-}
-function showBook(type,el){
- if(el){document.querySelectorAll(".pill").forEach(x=>x.classList.remove("active"));el.classList.add("active")}
- let ids=type==="unknown"?state.unknown:state.known, arr=WORDS.filter(w=>ids.includes(w.id));
- let b=document.querySelector("#book"); if(!arr.length){b.innerHTML=`<div class="empty">${type==="unknown"?"目前没有生词。":"目前还没有熟词。"}</div>`;return}
- b.innerHTML=`<div class="grid">${arr.map(w=>`<div class="bookcard"><div class="meta">${w.course} · Week ${w.week} · ${w.type}</div><h2>${w.en}</h2><div>${w.zh}</div><div class="meta" style="margin-top:10px">答错 ${state.wrong[w.id]||0} 次</div></div>`).join("")}</div>`;
-}
-
-async function syncNow(){
- let ok=await cloudLoad();updateCloudBadge(); if(route.page==="home")home(); else if(route.page==="course")course(route.course); else if(route.page==="week")week(route.course,route.week); else if(route.page==="books")books(); else if(route.page==="manage")manageWords();
-}
-function updateCloudBadge(){let d=document.getElementById("clouddot"),t=document.getElementById("cloudtxt");if(d)d.className="dot "+(cloudOnline?"ok":"err");if(t)t.textContent=cloudOnline?"已同步":"未同步"}
-function copyCloudCode(){navigator.clipboard.writeText(cloudId).then(()=>alert("同步码已复制"))}
-async function useCloudCode(){let id=prompt("粘贴你另一台设备上的同步码：");if(!id)return;setCloudId(id);await syncNow()}
-function manageWords(){
- route={page:"manage"};
- let courseOpts=Object.keys(COURSES).map(c=>`<option value="${c}">${c}</option>`).join("");
- let weekOpts=weeks.map(w=>`<option value="${w}">Week ${w}</option>`).join("");
- app.innerHTML=`<div class="shell">${header(true)}
- <div class="section-title"><div><div class="meta">Add · Import · Edit · Cloud</div><h1>词库管理</h1></div></div>
- <div class="cloudpanel"><h2>跨设备同步码</h2><p class="meta">在其他设备打开同一网站后，把这里的同步码复制过去，就会读取同一份云端词库。不要公开分享这个同步码。</p>
- <div class="formgrid"><div class="field full"><label>我的同步码</label><input class="codeinput" id="cloudCode" value="${cloudId}" readonly></div></div>
- <div class="manage-actions"><button class="btn secondary" onclick="copyCloudCode()">复制同步码</button><button class="btn secondary" onclick="useCloudCode()">在这台设备输入已有同步码</button></div></div>
- <div class="managebox">
-   <h2>添加一个单词</h2>
-   <div class="formgrid">
-    <div class="field"><label>课程</label><select id="mc">${courseOpts}</select></div>
-    <div class="field"><label>Week</label><select id="mw">${weekOpts}</select></div>
-    <div class="field"><label>英文</label><input id="men" placeholder="e.g. privacy"></div>
-    <div class="field"><label>中文</label><input id="mzh" placeholder="例如：隐私"></div>
-    <div class="field full"><label>类型</label><select id="mtype"><option>Professional term</option><option>Legal term</option><option>Theory</option><option>Research term</option><option>Difficult word</option><option>Key term</option></select></div>
-   </div>
-   <div class="manage-actions"><button class="btn" onclick="addOne()">添加单词</button></div><div id="notice1" class="notice"></div>
- </div>
- <div class="managebox">
-   <h2>批量导入</h2>
-   <p class="meta">先选择课程和 Week。每行一个词，支持「英文[TAB]中文」或「英文 | 中文」。</p>
-   <div class="formgrid">
-    <div class="field"><label>课程</label><select id="bc">${courseOpts}</select></div>
-    <div class="field"><label>Week</label><select id="bw">${weekOpts}</select></div>
-    <div class="field full"><label>词表</label><textarea id="bulk" placeholder="privacy    隐私&#10;consent    同意&#10;personal data | 个人数据"></textarea></div>
-   </div>
-   <div class="manage-actions"><button class="btn" onclick="bulkImport()">批量导入</button><button class="btn secondary" onclick="exportWords()">导出自定义词库</button></div><div id="notice2" class="notice"></div>
- </div>
- <div class="managebox"><h2>我添加的词</h2><div id="customList"></div></div>
- </div>`;
- renderCustomList();
-}
-function freshWords(){WORDS=[...BASE_WORDS,...customWords]}
-function nextCustomId(){
- let ids=WORDS.map(w=>Number(w.id)||0); return Math.max(1000,...ids)+1;
-}
-function showNotice(id,msg){let n=document.getElementById(id);n.textContent=msg;n.style.display="block";setTimeout(()=>n.style.display="none",2500)}
-async function addOne(){
- let course=document.getElementById("mc").value, week=Number(document.getElementById("mw").value),
- en=document.getElementById("men").value.trim(), zh=document.getElementById("mzh").value.trim(), type=document.getElementById("mtype").value;
- if(!en||!zh){showNotice("notice1","请同时填写英文和中文。");return}
+async function loadCloud(){
  try{
-   let row=await cloudInsert({course,week,en,zh,type});
-   let item={id:1000000+Number(row.id),cloudRowId:row.id,course,week,en,zh,type};
-   customWords.push(item);saveWords();freshWords();
-   document.getElementById("men").value="";document.getElementById("mzh").value="";showNotice("notice1","已保存到云端："+en);renderCustomList();
- }catch(e){showNotice("notice1","云端保存失败，请检查网络。");}
+   words=await sb("vocabulary_data?select=*&order=id.asc");
+   setSync(true); return true;
+ }catch(e){console.error(e);setSync(false);return false}
 }
-async function bulkImport() {
-  const course = document.getElementById("bc").value;
-  const week = Number(document.getElementById("bw").value);
-  const raw = document.getElementById("bulk").value.trim();
-
-  if (!raw) {
-    showNotice("notice2", "请先粘贴词表。");
-    return;
-  }
-
-  const items = [];
-
-  const lines = raw.split(/\r?\n/);
-
-  for (const line of lines) {
-    const cleanLine = line.trim();
-    if (!cleanLine) continue;
-
-    let parts;
-
-    if (cleanLine.includes("\t")) {
-      parts = cleanLine.split("\t");
-    } else if (cleanLine.includes("|")) {
-      parts = cleanLine.split("|");
-    } else {
-      const match = cleanLine.match(/^(.+?)\s{2,}(.+)$/);
-      if (match) {
-        parts = [match[1], match[2]];
-      } else {
-        continue;
-      }
-    }
-
-    if (parts.length >= 2) {
-      const en = parts[0].trim();
-      const zh = parts.slice(1).join(" ").trim();
-
-      if (en && zh) {
-        items.push({
-          course,
-          week,
-          en,
-          zh,
-          type: "Professional term"
-        });
-      }
-    }
-  }
-
-  if (items.length === 0) {
-    showNotice(
-      "notice2",
-      "没有识别到词汇。请使用：英文[TAB]中文 或 英文 | 中文"
-    );
-    return;
-  }
-
-  let count = 0;
-  let failed = 0;
-
-  for (const item of items) {
-    try {
-      const row = await cloudInsert(item);
-
-      customWords.push({
-        id: 1000000 + Number(row.id),
-        cloudRowId: row.id,
-        ...item
-      });
-
-      count++;
-    } catch (e) {
-      console.error("Import failed:", item, e);
-      failed++;
-    }
-  }
-
-  saveWords();
-  freshWords();
-  renderCustomList();
-
-  document.getElementById("bulk").value = "";
-
-  if (failed === 0) {
-    showNotice(
-      "notice2",
-      `成功保存 ${count} 个词到云端。`
-    );
-  } else {
-    showNotice(
-      "notice2",
-      `成功 ${count} 个，失败 ${failed} 个。`
-    );
-  }
+async function syncNow(){
+ await loadCloud();
+ renderCurrent();
 }
-function exportWords(){
- let data=JSON.stringify(customWords,null,2), blob=new Blob([data],{type:"application/json;charset=utf-8"}), a=document.createElement("a");
- a.href=URL.createObjectURL(blob);a.download="my-vocabulary-backup.json";a.click();URL.revokeObjectURL(a.href);
+function countCourse(c){return words.filter(w=>w.course===c).length}
+function countWeek(c,w){return words.filter(x=>x.course===c&&Number(x.week)===Number(w)).length}
+function knownCount(c){return words.filter(w=>w.course===c&&progress[w.id]==="known").length}
+
+function showHome(){
+ window._view={type:"home"};
+ app.innerHTML=`<section class="hero"><h1>My Semester Vocabulary</h1><p>Four courses · 13 weeks each · Learn by recognition, not repetition.</p></section>
+ <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${c}</div><h2>${n}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>`;
 }
+function showWeeks(c){
+ currentCourse=c;window._view={type:"weeks",c};
+ app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><div class="code">${c}</div><h1>${COURSES[c]}</h1></div></div>
+ <div class="weeks">${Array.from({length:13},(_,i)=>i+1).map(w=>`<div class="week" onclick="showWeek('${c}',${w})"><strong>Week ${w}</strong><small>${countWeek(c,w)} words</small></div>`).join("")}</div>`;
+}
+function showWeek(c,w){
+ currentCourse=c;currentWeek=w;window._view={type:"week",c,w};
+ const n=countWeek(c,w);
+ app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showWeeks('${c}')">← 返回</button><div><div class="code">${c}</div><h1>Week ${w}</h1></div></div>
+ <div class="panel"><h2>${n} words</h2><p class="meta">选择学习方式</p><div class="row">
+ <button class="primary" onclick="startStudy('choice')">四选一</button><button class="secondary" onclick="startStudy('recognition')">认识 / 不认识</button>
+ <button class="secondary" onclick="showManager('${c}',${w})">管理本周词汇</button></div></div>`;
+}
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function startStudy(mode){
+ currentMode=mode;queue=shuffle(words.filter(x=>x.course===currentCourse&&Number(x.week)===Number(currentWeek)));qIndex=0;
+ if(!queue.length){app.innerHTML=`<div class="empty">本周还没有词汇。<br><br><button class="secondary" onclick="showManager('${currentCourse}',${currentWeek})">去导入</button></div>`;return}
+ showQuestion();
+}
+function showQuestion(){
+ current=queue[qIndex];
+ if(!current){showWeek(currentCourse,currentWeek);return}
+ if(currentMode==="choice"){
+   let pool=shuffle(words.filter(w=>w.id!==current.id).map(w=>w.zh));
+   let opts=shuffle([current.zh,...pool.filter((v,i,a)=>a.indexOf(v)===i).slice(0,3)]);
+   while(opts.length<4) opts.push("—");
+   app.innerHTML=`<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="choices">${opts.map(o=>`<button class="choice" onclick='answerChoice(${JSON.stringify(o)},${JSON.stringify(current.zh)})'>${esc(o)}</button>`).join("")}</div></div>`;
+ }else{
+   app.innerHTML=`<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="bigBtns"><button class="secondary" onclick="markUnknown()">不认识</button><button class="primary" onclick="revealKnown()">认识</button></div></div>`;
+ }
+}
+function answerChoice(got,right){progress[current.id]=got===right?"known":"unknown";saveProgress();nextQ()}
+function markUnknown(){progress[current.id]="unknown";saveProgress();nextQ()}
+function revealKnown(){app.innerHTML=`<div class="study"><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p>和你想的一样吗？</p><div class="bigBtns"><button class="secondary" onclick="confirmKnown(false)">我错了</button><button class="primary" onclick="confirmKnown(true)">我没错</button></div></div>`}
+function confirmKnown(ok){progress[current.id]=ok?"known":"unknown";saveProgress();nextQ()}
+function nextQ(){qIndex++;showQuestion()}
 
-function goBack(){if(route.page==="course")home();else if(route.page==="week")course(route.course);else if(route.page==="manage")home();else home()}
-home();
+function showManager(c=currentCourse,w=currentWeek){
+ currentCourse=c||"COM5103";currentWeek=Number(w)||1;window._view={type:"manager",c:currentCourse,w:currentWeek};
+ app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><h1>词库管理</h1><div class="meta">添加、批量导入或删除词汇</div></div></div>
+ <div class="panel">
+ <div class="row"><select id="mc">${Object.keys(COURSES).map(x=>`<option ${x===currentCourse?"selected":""}>${x}</option>`).join("")}</select>
+ <select id="mw">${Array.from({length:13},(_,i)=>i+1).map(x=>`<option value="${x}" ${x===currentWeek?"selected":""}>Week ${x}</option>`).join("")}</select></div>
+ <h3>单个添加</h3><div class="row"><input id="en" placeholder="English"><input id="zh" placeholder="中文"></div><br><button class="primary" onclick="addOne()">添加单词</button>
+ <h3 style="margin-top:30px">批量导入</h3><p class="meta">每行一个词：英文 | 中文，或英文[TAB]中文</p><textarea id="bulk" placeholder="common law | 普通法&#10;case law | 判例法"></textarea><br><br>
+ <button class="primary" onclick="bulkImport()">批量导入</button><div id="notice" class="notice"></div>
+ <h3 style="margin-top:30px">本周词汇</h3><div id="wordList" class="list"></div></div>`;
+ document.getElementById("mc").onchange=e=>{currentCourse=e.target.value;showManager(currentCourse,currentWeek)};
+ document.getElementById("mw").onchange=e=>{currentWeek=Number(e.target.value);showManager(currentCourse,currentWeek)};
+ renderList();
+}
+function renderList(){
+ const el=document.getElementById("wordList");if(!el)return;
+ const arr=words.filter(x=>x.course===currentCourse&&Number(x.week)===Number(currentWeek));
+ el.innerHTML=arr.length?arr.map(x=>`<div class="item"><div><b>${esc(x.en)}</b><div class="zh">${esc(x.zh)}</div></div><button class="linkbtn danger" onclick="deleteWord(${Number(x.id)})">删除</button></div>`).join(""):`<div class="empty">本周还没有词汇</div>`;
+}
+async function addOne(){
+ const en=document.getElementById("en").value.trim(),zh=document.getElementById("zh").value.trim();if(!en||!zh)return notice("请输入英文和中文",true);
+ try{await sb("vocabulary_data",{method:"POST",body:JSON.stringify({course:currentCourse,week:currentWeek,en,zh,type:"Professional term"})});await loadCloud();renderList();notice("已保存到云端："+en)}
+ catch(e){notice("保存失败："+e.message,true)}
+}
+function parseBulk(raw){
+ return raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(line=>{
+   let p=line.includes("\t")?line.split("\t"):line.split("|");
+   if(p.length<2)return null;
+   return {en:p[0].trim(),zh:p.slice(1).join(" ").trim()};
+ }).filter(x=>x&&x.en&&x.zh);
+}
+async function bulkImport(){
+ const items=parseBulk(document.getElementById("bulk").value);
+ if(!items.length)return notice("没有识别到词汇，请使用 英文 | 中文 或 Tab 分隔。",true);
+ const existing=new Set(words.filter(x=>x.course===currentCourse&&Number(x.week)===currentWeek).map(x=>x.en.trim().toLowerCase()));
+ const rows=[];let skipped=0;
+ for(const x of items){const k=x.en.toLowerCase();if(existing.has(k)){skipped++;continue}existing.add(k);rows.push({course:currentCourse,week:currentWeek,en:x.en,zh:x.zh,type:"Professional term"})}
+ if(!rows.length)return notice("没有新增词汇；这些词已经存在。",true);
+ try{
+   await sb("vocabulary_data",{method:"POST",body:JSON.stringify(rows)});
+   await loadCloud();renderList();document.getElementById("bulk").value="";
+   notice(`成功导入 ${rows.length} 个词${skipped?`，跳过 ${skipped} 个重复词`:""}。`);
+ }catch(e){notice("批量导入失败："+e.message,true)}
+}
+async function deleteWord(id){
+ if(!confirm("确定删除这个词吗？"))return;
+ try{await sb("vocabulary_data?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});delete progress[id];saveProgress();await loadCloud();renderList();notice("已删除")}
+ catch(e){notice("删除失败："+e.message,true)}
+}
+function notice(t,bad=false){const n=document.getElementById("notice");if(n){n.textContent=t;n.className="notice"+(bad?" danger":"")}}
 
+function showBook(kind){
+ window._view={type:"book",kind};const arr=words.filter(w=>progress[w.id]===kind);
+ app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><h1>${kind==="known"?"熟词本":"生词本"}</h1><div class="meta">${arr.length} words</div></div></div>
+ <div class="panel">${arr.length?arr.map(x=>`<div class="item"><div><b>${esc(x.en)}</b><div class="zh">${esc(x.zh)} · ${x.course} Week ${x.week}</div></div></div>`).join(""):`<div class="empty">暂无词汇</div>`}</div>`;
+}
+function renderCurrent(){
+ const v=window._view||{type:"home"};
+ if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else showHome();
+}
+(async function init(){
+ showHome();
+ await loadCloud();
+ showHome();
+})();
 </script>
 </body>
 </html>
