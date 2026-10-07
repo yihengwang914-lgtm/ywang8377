@@ -52,7 +52,7 @@ async function readJob(token, secret) {
   const expected=base64url(await hmac(secret,encoder.encode(parts[0])));
   if(!await sameSecret(parts[1],expected)) throw new HttpError(401,'任务凭据无效。');
   let job; try{job=JSON.parse(new TextDecoder().decode(decode64url(parts[0])));}catch{throw new HttpError(401,'任务凭据无效。');}
-  if(!/^resp_[A-Za-z0-9]+$/.test(job.id)||!COURSES.has(job.course)||!Number.isInteger(job.week)||job.week<1||job.week>13||!Number.isFinite(job.exp)||job.exp<Date.now()) throw new HttpError(401,'任务已过期，请重新上传。');
+  if(!/^(?:resp_[A-Za-z0-9]+|job_[a-f0-9-]{36})$/.test(job.id)||!COURSES.has(job.course)||!Number.isInteger(job.week)||job.week<1||job.week>13||!Number.isFinite(job.exp)||job.exp<Date.now()) throw new HttpError(401,'任务已过期，请重新上传。');
   return job;
 }
 async function limitedBody(req, max) {
@@ -70,6 +70,16 @@ function cleanTerm(x) {
 }
 export function createHandler({env,fetch:fetcher=fetch}) {
   const getEnv=name=>env(name)||'';
+  async function jobStore(path, init={}) {
+    let keys={};try{keys=JSON.parse(getEnv('SUPABASE_SECRET_KEYS')||'{}');}catch{}
+    const key=keys.default||getEnv('SUPABASE_SERVICE_ROLE_KEY');
+    if(!key)throw new HttpError(503,'任务恢复服务未配置，请联系网站管理员。');
+    const headers={apikey:key,'Content-Type':'application/json',Prefer:'return=representation',...(key.startsWith('sb_')?{}:{Authorization:'Bearer '+key})};
+    let r;try{r=await fetcher(getEnv('SUPABASE_URL')+'/rest/v1/courseware_upload_jobs'+path,{...init,headers,signal:AbortSignal.timeout(15000)});}catch{throw new HttpError(503,'任务恢复服务连接中断，请稍后点击“继续检查”。');}
+    if(!r.ok)throw new HttpError(503,'无法保存或读取上传任务，请稍后重试。');
+    return r.json();
+  }
+  const updateJob=(id,fields,condition='')=>jobStore('?id=eq.'+id+condition,{method:'PATCH',body:JSON.stringify({...fields,updated_at:new Date().toISOString()})});
   function aiFailure(error, fallback) {
     const code=typeof error?.code==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(error.code)?error.code:'unknown';
     let message=typeof error?.message==='string'?error.message:'';
@@ -108,6 +118,7 @@ export function createHandler({env,fetch:fetcher=fetch}) {
     return r.json();
   }
   return async req=>{
+    let activeJob=null;
     const origin=req.headers.get('origin');
     const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin','Access-Control-Allow-Origin':ORIGIN,'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'content-type, apikey, x-upload-token'};
     const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
@@ -132,7 +143,16 @@ export function createHandler({env,fetch:fetcher=fetch}) {
         if(!MIME[ext])throw new HttpError(400,'支持 PDF、PPTX、DOCX 和 TXT；旧版 PPT / DOC 请先另存为新版或 PDF。');
         const fileBytes=new Uint8Array(await file.arrayBuffer());
         if((ext==='pdf'&&!new TextDecoder().decode(fileBytes.subarray(0,1024)).includes('%PDF-'))||(['docx','pptx'].includes(ext)&&!(fileBytes[0]===80&&fileBytes[1]===75)))throw new HttpError(400,'文件内容与扩展名不匹配，请重新导出课件。');
-        const nonce=crypto.randomUUID();
+        let registered=null;
+        if(form.get('job')){
+          registered=await readJob(form.get('job'),secret);
+          if(!registered.id.startsWith('job_')||registered.course!==course||registered.week!==week||registered.filename!==filename)throw new HttpError(403,'课件与已保存的上传任务不匹配。');
+          const claimed=await updateJob(registered.id,{status:'initializing'},'&status=eq.awaiting_upload');
+          if(!claimed.length)return reply({status:'processing',job:form.get('job'),course,week,filename},202);
+          activeJob=registered;
+        }
+        const nonce=registered?.nonce||crypto.randomUUID();
+        console.info(JSON.stringify({event:'courseware_file_received',job_id:registered?.id||null,bytes:file.size}));
         const response=await openai('responses',{method:'POST',body:JSON.stringify({
           model:getEnv('OPENAI_MODEL')||'gpt-4.1-mini',background:true,store:true,max_output_tokens:32768,
           instructions,
@@ -141,20 +161,42 @@ export function createHandler({env,fetch:fetcher=fetch}) {
           text:{format:{type:'json_schema',name:'course_vocabulary',strict:true,schema}}
         })});
         if(!/^resp_[A-Za-z0-9]+$/.test(response.id))throw new HttpError(502,'AI 未能创建分析任务。');
+        if(registered)await updateJob(registered.id,{status:'processing',response_id:response.id});
         console.info(JSON.stringify({event:'courseware_task_created',response_id:response.id,course,week}));
-        const job={id:response.id,course,week,filename,nonce,exp:Date.now()+24*60*60*1000};
+        const job=registered||{id:response.id,course,week,filename,nonce,exp:Date.now()+24*60*60*1000};
         return reply({job:await signJob(job,secret),status:'processing',course,week,filename},202);
       }
       const raw=await limitedBody(req,8192);
       let data;try{data=JSON.parse(new TextDecoder().decode(raw));}catch{throw new HttpError(400,'请求格式无效。');}
+      if(data.action==='prepare'){
+        const supplied=req.headers.get('x-upload-token')||'';
+        if(supplied.length>512||!await sameSecret(supplied,secret))throw new HttpError(401,'上传口令不正确，请重新输入。');
+        const course=data.course,week=Number(data.week),filename=typeof data.filename==='string'?data.filename.replace(/[\u0000-\u001f\u007f]/g,'').slice(0,160):'';
+        if(!COURSES.has(course)||!Number.isInteger(week)||week<1||week>13||!filename||!MIME[filename.split('.').pop().toLowerCase()])throw new HttpError(400,'请选择有效课程、Week 和课件。');
+        const job={id:'job_'+crypto.randomUUID(),course,week,filename,nonce:crypto.randomUUID(),exp:Date.now()+24*60*60*1000};
+        await jobStore('',{method:'POST',body:JSON.stringify({id:job.id,course,week,filename,nonce:job.nonce})});
+        return reply({job:await signJob(job,secret),status:'awaiting_upload',course,week,filename},201);
+      }
       if(data.action!=='poll')throw new HttpError(400,'请求操作无效。');
       const job=await readJob(data.job,secret);
-      const response=await openai('responses/'+job.id);
+      let responseId=job.id;
+      if(job.id.startsWith('job_')){
+        const rows=await jobStore('?id=eq.'+job.id+'&select=*'),saved=rows[0];
+        if(!saved||saved.nonce!==job.nonce||saved.course!==job.course||saved.week!==job.week)throw new HttpError(404,'上传任务不存在，请重新上传。');
+        if(saved.status==='failed')throw new HttpError(422,saved.error_message||'课件处理失败，本次未导入。');
+        if(!saved.response_id){
+          const age=Date.now()-Date.parse(saved.updated_at);
+          if(age>180000)throw new HttpError(422,saved.error_message||(saved.status==='awaiting_upload'?'文件上传未完成，尚未发送给 AI 分析。请检查网络后重新上传。':'AI 任务创建连接中断，尚未取得有效分析结果。请稍后重试。'));
+          return reply({status:'processing',phase:saved.status,message:saved.status==='awaiting_upload'?'文件尚未上传完成，正在等待上传连接恢复。':'课件已上传，正在连接 OpenAI 创建分析任务。',course:job.course,week:job.week,filename:job.filename});
+        }
+        activeJob=job;responseId=saved.response_id;
+      }
+      const response=await openai('responses/'+responseId);
       if(response.metadata?.purpose!=='semester_vocabulary'||response.metadata?.upload_id!==job.nonce||response.metadata?.course!==job.course||response.metadata?.week!==String(job.week))throw new HttpError(403,'分析任务与目标词库不匹配。');
       if(['queued','in_progress'].includes(response.status))return reply({status:'processing',course:job.course,week:job.week,filename:job.filename});
       if(response.status==='incomplete')throw new HttpError(422,'分析结果被截断，本次未导入。请将课件拆分成较小文件后上传。');
       if(response.status!=='completed'){
-        console.warn(JSON.stringify({event:'courseware_ai_failed',response_id:job.id,status:response.status,error_code:typeof response.error?.code==='string'?response.error.code.slice(0,80):'unknown'}));
+        console.warn(JSON.stringify({event:'courseware_ai_failed',response_id:responseId,status:response.status,error_code:typeof response.error?.code==='string'?response.error.code.slice(0,80):'unknown'}));
         throw new HttpError(422,aiFailure(response.error,'AI 分析任务未完成，请稍后重试。'));
       }
       const content=(response.output||[]).filter(o=>o.type==='message').flatMap(o=>o.content||[]);
@@ -166,6 +208,12 @@ export function createHandler({env,fetch:fetcher=fetch}) {
       for(const entry of result.terms){const t=cleanTerm(entry),k=t.english.toLowerCase();if(seen.has(k)){const previous=seen.get(k);if(previous.chinese!==t.chinese&&!previous.chinese.includes(t.chinese)&&previous.chinese.length+t.chinese.length+1<=500)previous.chinese+='；'+t.chinese;}else{seen.set(k,t);terms.push(t);}}
       const counts=terms.length?await importTerms(job,terms):{inserted:0,skipped:0};
       return reply({status:'completed',course:job.course,week:job.week,filename:job.filename,extracted:terms.length,...counts,terms,coverage_note:String(result.coverage_note||'').slice(0,600),warnings:Array.isArray(result.warnings)?result.warnings.filter(x=>typeof x==='string').map(x=>x.slice(0,500)).slice(0,10):[]});
-    }catch(e){return reply({error:e instanceof HttpError?e.message:'上传服务暂时不可用，请稍后重试。'},e instanceof HttpError?e.status:500);}
+    }catch(e){
+      if(activeJob&&e instanceof HttpError){
+        const terminal=![503,504].includes(e.status)||/额度|余额|速率|密钥无效|访问权限/.test(e.message);
+        try{await updateJob(activeJob.id,{...(terminal?{status:'failed'}:{}),error_message:e.message});}catch{}
+      }
+      return reply({error:e instanceof HttpError?e.message:'上传服务暂时不可用，请稍后重试。'},e instanceof HttpError?e.status:500);
+    }
   };
 }
