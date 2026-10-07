@@ -20,6 +20,7 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 .list{margin-top:22px;border-top:1px solid var(--line)}.item{display:flex;justify-content:space-between;gap:20px;padding:13px 0;border-bottom:1px solid #e6e1d8;font-size:14px}.item .zh{color:var(--muted)}
 .study{text-align:center;max-width:760px;margin:0 auto}.word{font-size:46px;margin:70px 0 40px}.choices{display:grid;grid-template-columns:1fr 1fr;gap:14px}.choice{padding:18px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer}.bigBtns{display:flex;gap:18px;justify-content:center}.bigBtns button{min-width:160px;padding:16px}.answer{font-size:24px;margin:24px 0}.tabs{display:flex;gap:10px;margin-bottom:18px}.tabs button.active{background:var(--dark);color:#fff}.empty{text-align:center;color:var(--muted);padding:60px 0}
 .signature{text-align:center;color:#8a877f;font-size:12px;margin-top:46px;letter-spacing:.2px}
+.uploadHome{margin-top:22px;padding:22px 24px;border:1px solid var(--line);border-radius:22px;background:var(--card);display:flex;align-items:center;justify-content:space-between;gap:20px}.uploadHome h2{font-size:20px;margin:0 0 8px}.uploadHome p{margin:0;color:var(--muted);font-size:14px;line-height:1.6}.uploadPanel label{display:block;font-size:14px;margin-bottom:8px}.uploadFields{display:grid;grid-template-columns:1fr 1fr;gap:16px}.uploadFile{margin:24px 0;border:1px dashed #bcb5a7;border-radius:16px;padding:22px;background:#fff}.uploadFile input{border:0;padding:10px 0}.uploadHint{font-size:13px;color:var(--muted);line-height:1.7;margin:8px 0 0}.uploadStatus{line-height:1.7;margin-top:20px;font-size:14px;overflow-wrap:anywhere}.uploadStatus:empty{display:none}.uploadStatus.error{color:var(--red)}.uploadStatus.success{color:var(--green)}.uploadResults{margin-top:24px}.uploadResults details{border-bottom:1px solid var(--line);padding:13px 0}.uploadResults summary{cursor:pointer;font-size:15px}.uploadResults .zh{display:block;margin-top:6px;color:var(--muted);font-size:14px}.uploadResults blockquote{margin:12px 0;padding:8px 12px;border-left:2px solid var(--line);font-size:13px;color:var(--muted);overflow-wrap:anywhere}.uploadResults h3{margin-top:0}.uploadActions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px}button:disabled{opacity:.5;cursor:wait}.uploadProgress{display:flex;gap:10px;align-items:center}.uploadSpinner{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:uploadSpin 1s linear infinite}@keyframes uploadSpin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.uploadSpinner{animation:none}}@media(max-width:560px){.uploadHome{align-items:flex-start;flex-direction:column}.uploadFields{grid-template-columns:1fr}.uploadPanel{padding:20px}.uploadHome .primary{width:100%}}
 @media(max-width:1000px){header,main{max-width:none;margin-left:5vw;margin-right:5vw}.grid,.weeks{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.grid,.weeks,.choices{grid-template-columns:1fr}.top{gap:5px;font-size:11px;flex-wrap:wrap;justify-content:flex-end}.linkbtn{padding:7px 9px}header{height:auto;padding:18px 0;align-items:flex-start}.brand{font-size:16px}.hero h1{font-size:40px}}
 </style>
@@ -85,6 +86,7 @@ function showHome(){
  window._view={type:"home"};
  app.innerHTML=`<section class="hero"><h1>把专业词汇<br>真正记下来。</h1><p>按课程、Week 学习。快速过词、四选一测试，并自动整理生词与熟词。</p></section>
  <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${n}</div><h2>${c}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>
+ <section class="uploadHome"><div><h2>上传课件，整理专业术语</h2><p>选择课程和 Week，让 AI 整理中英文术语，自动加入对应词库。</p></div><button class="primary" onclick="showUpload()">上传课件</button></section>
  <div class="signature">Semester Vocabulary · @王大葱</div>`;
 }
 function showWeeks(c){
@@ -204,7 +206,7 @@ function showBook(kind){
 }
 function renderCurrent(){
  const v=window._view||{type:"home"};
- if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else showHome();
+ if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else if(v.type==="upload")refreshUploadState();else showHome();
 }
 (async function init(){
  showHome();
@@ -212,5 +214,6 @@ function renderCurrent(){
  showHome();
 })();
 </script>
+<script src="upload.js"></script>
 </body>
 </html>
