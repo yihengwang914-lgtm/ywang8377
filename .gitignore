@@ -1,0 +1,13 @@
+# Private local configuration; ignore rules do not remove tracked files.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+.DS_Store
+node_modules/
+__pycache__/
+.venv/
