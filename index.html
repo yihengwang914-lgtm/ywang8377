@@ -118,9 +118,10 @@ function buildDistractors(cur){
  }
  return result;
 }
+function studyBackButton(){return `<div class="sectionHead"><button class="back" onclick="showWeek(currentCourse,currentWeek)">← 返回上一页</button></div>`}
 function startStudy(mode){
  currentMode=mode;queue=shuffle(words.filter(x=>x.course===currentCourse&&Number(x.week)===Number(currentWeek)));qIndex=0;
- if(!queue.length){app.innerHTML=`<div class="empty">本周还没有词汇。<br><br><button class="secondary" onclick="showManager('${currentCourse}',${currentWeek})">去导入</button></div>`;return}
+ if(!queue.length){app.innerHTML=`${studyBackButton()}<div class="empty">本周还没有词汇。<br><br><button class="secondary" onclick="showManager('${currentCourse}',${currentWeek})">去导入</button></div>`;return}
  showQuestion();
 }
 function showQuestion(){
@@ -129,18 +130,18 @@ function showQuestion(){
  if(currentMode==="choice"){
    const distractors=buildDistractors(current);
    if(distractors.length<3){
-     app.innerHTML=`<div class="study"><div class="code">${currentCourse} · Week ${currentWeek}</div><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p class="meta">词库中不同中文释义不足 4 个，暂时无法生成有效四选一。</p><br><button class="secondary" onclick="nextQ()">下一个</button></div>`;
+     app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${currentCourse} · Week ${currentWeek}</div><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p class="meta">词库中不同中文释义不足 4 个，暂时无法生成有效四选一。</p><br><button class="secondary" onclick="nextQ()">下一个</button></div>`;
      return;
    }
    let opts=shuffle([current.zh,...distractors]);
-   app.innerHTML=`<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="choices">${opts.map(o=>`<button class="choice" onclick='answerChoice(${JSON.stringify(o)},${JSON.stringify(current.zh)})'>${esc(o)}</button>`).join("")}</div></div>`;
+   app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="choices">${opts.map(o=>`<button class="choice" onclick='answerChoice(${JSON.stringify(o)},${JSON.stringify(current.zh)})'>${esc(o)}</button>`).join("")}</div></div>`;
  }else{
-   app.innerHTML=`<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="bigBtns"><button class="secondary" onclick="markUnknown()">不认识</button><button class="primary" onclick="revealKnown()">认识</button></div></div>`;
+   app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="bigBtns"><button class="secondary" onclick="markUnknown()">不认识</button><button class="primary" onclick="revealKnown()">认识</button></div></div>`;
  }
 }
 function answerChoice(got,right){progress[current.id]=got===right?"known":"unknown";saveProgress();nextQ()}
 function markUnknown(){progress[current.id]="unknown";saveProgress();nextQ()}
-function revealKnown(){app.innerHTML=`<div class="study"><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p>和你想的一样吗？</p><div class="bigBtns"><button class="secondary" onclick="confirmKnown(false)">我错了</button><button class="primary" onclick="confirmKnown(true)">我没错</button></div></div>`}
+function revealKnown(){app.innerHTML=`${studyBackButton()}<div class="study"><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p>和你想的一样吗？</p><div class="bigBtns"><button class="secondary" onclick="confirmKnown(false)">我错了</button><button class="primary" onclick="confirmKnown(true)">我没错</button></div></div>`}
 function confirmKnown(ok){progress[current.id]=ok?"known":"unknown";saveProgress();nextQ()}
 function nextQ(){qIndex++;showQuestion()}
 
