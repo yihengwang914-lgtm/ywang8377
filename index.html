@@ -39,6 +39,7 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 <script>
 const SUPABASE_URL="https://lgluwowzuwsabedbyblr.supabase.co";
 const SUPABASE_KEY="sb_publishable_04dsccL9acJYdCafv99nYg_yRgMaQdB";
+const VOCABULARY_OWNER="semester-vocabulary-shared";
 const COURSES={
  COM5103:"Policy and Regulations of New Media",
  COM5101:"Communication Fundamental",
@@ -62,7 +63,13 @@ async function sb(path,opt={}){
 }
 async function loadCloud(){
  try{
-   words=await sb("vocabulary_data?select=*&order=id.asc");
+   const loaded=[];
+   for(let offset=0;;offset+=1000){
+     const batch=await sb("vocabulary_data?select=id,course,week,en:english,zh:chinese,type:word_type&order=id.asc&limit=1000&offset="+offset);
+     loaded.push(...batch);
+     if(batch.length<1000)break;
+   }
+   words=loaded;
    setSync(true); return true;
  }catch(e){console.error(e);setSync(false);return false}
 }
@@ -158,9 +165,10 @@ function renderList(){
 }
 async function addOne(){
  const en=document.getElementById("en").value.trim(),zh=document.getElementById("zh").value.trim();if(!en||!zh)return notice("请输入英文和中文",true);
- try{await sb("vocabulary_data",{method:"POST",body:JSON.stringify({course:currentCourse,week:currentWeek,en,zh,type:"Professional term"})});await loadCloud();renderList();notice("已保存到云端："+en)}
+ try{await sb("vocabulary_data",{method:"POST",body:JSON.stringify(cloudWord(en,zh))});await loadCloud();renderList();notice("已保存到云端："+en)}
  catch(e){notice("保存失败："+e.message,true)}
 }
+function cloudWord(en,zh){return {device_user:VOCABULARY_OWNER,course:currentCourse,week:currentWeek,english:en,chinese:zh,word_type:"Professional term"}}
 function parseBulk(raw){
  return raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(line=>{
    let p=line.includes("\t")?line.split("\t"):line.split("|");
@@ -173,7 +181,7 @@ async function bulkImport(){
  if(!items.length)return notice("没有识别到词汇，请使用 英文 | 中文 或 Tab 分隔。",true);
  const existing=new Set(words.filter(x=>x.course===currentCourse&&Number(x.week)===currentWeek).map(x=>x.en.trim().toLowerCase()));
  const rows=[];let skipped=0;
- for(const x of items){const k=x.en.toLowerCase();if(existing.has(k)){skipped++;continue}existing.add(k);rows.push({course:currentCourse,week:currentWeek,en:x.en,zh:x.zh,type:"Professional term"})}
+ for(const x of items){const k=x.en.toLowerCase();if(existing.has(k)){skipped++;continue}existing.add(k);rows.push(cloudWord(x.en,x.zh))}
  if(!rows.length)return notice("没有新增词汇；这些词已经存在。",true);
  try{
    await sb("vocabulary_data",{method:"POST",body:JSON.stringify(rows)});
