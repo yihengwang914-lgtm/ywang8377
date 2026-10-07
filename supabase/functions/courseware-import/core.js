@@ -70,15 +70,31 @@ function cleanTerm(x) {
 }
 export function createHandler({env,fetch:fetcher=fetch}) {
   const getEnv=name=>env(name)||'';
+  function aiFailure(error, fallback) {
+    const code=typeof error?.code==='string'&&/^[a-zA-Z0-9_-]{1,80}$/.test(error.code)?error.code:'unknown';
+    let message=typeof error?.message==='string'?error.message:'';
+    for(const name of ['OPENAI_API_KEY','UPLOAD_ACCESS_TOKEN']){const value=getEnv(name);if(value)message=message.split(value).join('[已隐藏]');}
+    message=message.replace(/\b(?:sk-|sb_secret_)[a-zA-Z0-9_-]+/g,'[已隐藏]').replace(/[\u0000-\u001f]/g,' ').slice(0,600);
+    const text=(code+' '+message).toLowerCase();
+    let reason;
+    if(/insufficient_quota|billing|exceeded.*quota/.test(text))reason='OpenAI API 可用额度不足，请检查 API 账户的余额和使用限额。';
+    else if(/rate_limit|rate limit/.test(text))reason='OpenAI 请求达到速率限制，请稍后重试。';
+    else if(/invalid_api_key|incorrect api key|authentication/.test(text))reason='OpenAI API 密钥无效，请检查后台密钥设置。';
+    else if(/context_length|context window|too many tokens/.test(text))reason='课件内容超过模型可处理的长度，请拆分后上传。';
+    else if(/model_not_found|does not have access|permission/.test(text))reason='当前 OpenAI 项目没有所选模型的访问权限，请检查 API 项目配置。';
+    else if(/invalid_pdf|file_parse|file_processing|unsupported_file|failed to parse|failed to process.*file/.test(text))reason='OpenAI 无法读取课件文件，请确认文件未加密且可以打开，必要时重新导出 PDF。';
+    else reason=message||fallback;
+    return `${reason}${code!=='unknown'?'（错误代码：'+code+'）':''} 本次未导入词汇。`;
+  }
   async function openai(path, init={}) {
     let response;
     try{response=await fetcher('https://api.openai.com/v1/'+path,{...init,headers:{Authorization:'Bearer '+getEnv('OPENAI_API_KEY'),'Content-Type':'application/json',...(init.headers||{})},signal:AbortSignal.timeout(60000)});}catch{throw new HttpError(504,'AI 服务连接超时。已有任务可点击“继续检查”，请勿重复上传。');}
     let data;try{data=await response.json();}catch{throw new HttpError(502,'AI 服务未返回有效结果。');}
     if(!response.ok){
       if(response.status===401) throw new HttpError(503,'OpenAI 密钥无效，请检查后台配置。');
-      if(response.status===429) throw new HttpError(503,'OpenAI 余额不足或请求达到限制，请检查 API 账户后再试。');
+      if(response.status===429) throw new HttpError(503,aiFailure(data.error,'OpenAI 请求受限，请稍后重试。'));
       if(response.status===404) throw new HttpError(404,'分析任务已失效，请重新上传课件。');
-      throw new HttpError(502,'AI 无法处理此课件，请确认文件可打开，或拆分 / 转成 PDF 后重试。');
+      throw new HttpError(502,aiFailure(data.error,'AI 无法处理此课件，请确认文件可打开。'));
     }
     return data;
   }
@@ -125,6 +141,7 @@ export function createHandler({env,fetch:fetcher=fetch}) {
           text:{format:{type:'json_schema',name:'course_vocabulary',strict:true,schema}}
         })});
         if(!/^resp_[A-Za-z0-9]+$/.test(response.id))throw new HttpError(502,'AI 未能创建分析任务。');
+        console.info(JSON.stringify({event:'courseware_task_created',response_id:response.id,course,week}));
         const job={id:response.id,course,week,filename,nonce,exp:Date.now()+24*60*60*1000};
         return reply({job:await signJob(job,secret),status:'processing',course,week,filename},202);
       }
@@ -136,7 +153,10 @@ export function createHandler({env,fetch:fetcher=fetch}) {
       if(response.metadata?.purpose!=='semester_vocabulary'||response.metadata?.upload_id!==job.nonce||response.metadata?.course!==job.course||response.metadata?.week!==String(job.week))throw new HttpError(403,'分析任务与目标词库不匹配。');
       if(['queued','in_progress'].includes(response.status))return reply({status:'processing',course:job.course,week:job.week,filename:job.filename});
       if(response.status==='incomplete')throw new HttpError(422,'分析结果被截断，本次未导入。请将课件拆分成较小文件后上传。');
-      if(response.status!=='completed')throw new HttpError(422,'AI 未能完成课件分析，本次未导入。请检查或拆分课件后重试。');
+      if(response.status!=='completed'){
+        console.warn(JSON.stringify({event:'courseware_ai_failed',response_id:job.id,status:response.status,error_code:typeof response.error?.code==='string'?response.error.code.slice(0,80):'unknown'}));
+        throw new HttpError(422,aiFailure(response.error,'AI 分析任务未完成，请稍后重试。'));
+      }
       const content=(response.output||[]).filter(o=>o.type==='message').flatMap(o=>o.content||[]);
       if(content.some(c=>c.type==='refusal'))throw new HttpError(422,'AI 无法整理这份课件，本次未导入。');
       let result;try{result=JSON.parse(content.filter(c=>c.type==='output_text').map(c=>c.text).join(''));}catch{throw new HttpError(502,'整理结果格式无效，本次未导入。');}
