@@ -1,6 +1,6 @@
 # CourseLex AI · 同学试用版
 
-网站：https://yihengwang914-lgtm.github.io/ywang8377/
+网站：https://www.courselexai.com/
 
 邮箱注册、验证后登录、退出；每个账号独立配置课程名称、简称、数量与 1–52 周。保留四选一、认识/不认识、生词本、熟词本、手动词库管理与 AI 课件整理。学习状态同步到个人云端。
 
@@ -12,7 +12,7 @@
 
 # Semester Vocabulary
 
-Course vocabulary website: https://yihengwang914-lgtm.github.io/ywang8377/
+Course vocabulary website: https://www.courselexai.com/
 
 ## 课件自动整理
 

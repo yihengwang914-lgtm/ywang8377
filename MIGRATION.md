@@ -18,7 +18,7 @@ The server checks the confirmed address in `auth.users`, never user-editable met
 
 - Email signup: enabled; confirm email: enabled; anonymous sign-ins: disabled.
 - Minimum password: 8; secure email change and secure password change enabled.
-- Site URL and exact redirect: `https://yihengwang914-lgtm.github.io/ywang8377/`.
+- Site URL and exact redirect: `https://www.courselexai.com/`.
 - Custom SMTP must be configured before classmates can register. The default Supabase SMTP restricts delivery to project-team addresses. Never disable email confirmation to bypass this restriction: confirmed identity protects personal migration.
 - The browser ships only the publishable key and a locally vendored, pinned Supabase JS 2.57.4 client. Secret keys and AI credentials stay in the Edge Function environment.
 
