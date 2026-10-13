@@ -1,5 +1,5 @@
 const LEGACY_EMAIL='ywang8377-c@my.cityu.edu.hk';
-const returnUrl='https://yihengwang914-lgtm.github.io/ywang8377/';
+const returnUrl=location.hostname==='www.courselexai.com'||location.hostname==='courselexai.com'?'https://www.courselexai.com/':'https://yihengwang914-lgtm.github.io/ywang8377/';
 let recoveryMode=false;
 function authNotice(text,bad=false){const el=document.getElementById('authNotice');if(el){el.textContent=text;el.className='notice'+(bad?' danger':'')}}
 function showAuth(mode='login'){

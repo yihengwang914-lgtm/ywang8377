@@ -1,4 +1,4 @@
-const ORIGIN = 'https://yihengwang914-lgtm.github.io';
+const ORIGINS = new Set(['https://yihengwang914-lgtm.github.io','https://www.courselexai.com','https://courselexai.com']);
 const COURSES = new Set(['COM5103','COM5101','COM5501','COM5104']);
 const MIME = {pdf:'application/pdf',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',txt:'text/plain'};
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -120,10 +120,10 @@ export function createHandler({env,fetch:fetcher=fetch}) {
   return async req=>{
     let activeJob=null;
     const origin=req.headers.get('origin');
-    const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin','Access-Control-Allow-Origin':ORIGIN,'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'content-type, apikey, x-upload-token'};
+    const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin','Access-Control-Allow-Origin':ORIGINS.has(origin)?origin:'https://www.courselexai.com','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'content-type, apikey, x-upload-token'};
     const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
     try{
-      if(origin&&origin!==ORIGIN) throw new HttpError(403,'请从 Semester Vocabulary 网站使用上传功能。');
+      if(origin&&!ORIGINS.has(origin)) throw new HttpError(403,'请从 Semester Vocabulary 网站使用上传功能。');
       if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
       const secret=getEnv('UPLOAD_ACCESS_TOKEN');
       const configured=Boolean(getEnv('OPENAI_API_KEY')&&secret.length>=16);
