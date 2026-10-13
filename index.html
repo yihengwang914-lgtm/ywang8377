@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Semester Vocabulary</title>
+<title>CourseLex AI · Semester Vocabulary</title>
 <style>
 :root{--bg:#f5f2e8;--ink:#22221f;--muted:#77756e;--line:#ddd8cc;--card:#fbfaf6;--dark:#232320;--red:#a95d56;--green:#327d62}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif}
@@ -23,12 +23,15 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 .uploadHome{margin-top:22px;padding:22px 24px;border:1px solid var(--line);border-radius:22px;background:var(--card);display:flex;align-items:center;justify-content:space-between;gap:20px}.uploadHome h2{font-size:20px;margin:0 0 8px}.uploadHome p{margin:0;color:var(--muted);font-size:14px;line-height:1.6}.uploadPanel label{display:block;font-size:14px;margin-bottom:8px}.uploadFields{display:grid;grid-template-columns:1fr 1fr;gap:16px}.uploadFile{margin:24px 0;border:1px dashed #bcb5a7;border-radius:16px;padding:22px;background:#fff}.uploadFile input{border:0;padding:10px 0}.uploadHint{font-size:13px;color:var(--muted);line-height:1.7;margin:8px 0 0}.uploadStatus{line-height:1.7;margin-top:20px;font-size:14px;overflow-wrap:anywhere}.uploadStatus:empty{display:none}.uploadStatus.error{color:var(--red)}.uploadStatus.success{color:var(--green)}.uploadResults{margin-top:24px}.uploadResults details{border-bottom:1px solid var(--line);padding:13px 0}.uploadResults summary{cursor:pointer;font-size:15px}.uploadResults .zh{display:block;margin-top:6px;color:var(--muted);font-size:14px}.uploadResults blockquote{margin:12px 0;padding:8px 12px;border-left:2px solid var(--line);font-size:13px;color:var(--muted);overflow-wrap:anywhere}.uploadResults h3{margin-top:0}.uploadActions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px}button:disabled{opacity:.5;cursor:wait}.uploadProgress{display:flex;gap:10px;align-items:center}.uploadSpinner{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:uploadSpin 1s linear infinite}@keyframes uploadSpin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.uploadSpinner{animation:none}}@media(max-width:560px){.uploadHome{align-items:flex-start;flex-direction:column}.uploadFields{grid-template-columns:1fr}.uploadPanel{padding:20px}.uploadHome .primary{width:100%}}
 @media(max-width:1000px){header,main{max-width:none;margin-left:5vw;margin-right:5vw}.grid,.weeks{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.grid,.weeks,.choices{grid-template-columns:1fr}.top{gap:5px;font-size:11px;flex-wrap:wrap;justify-content:flex-end}.linkbtn{padding:7px 9px}header{height:auto;padding:18px 0;align-items:flex-start}.brand{font-size:16px}.hero h1{font-size:40px}}
+[hidden]{display:none!important}.authPanel{max-width:480px}.authPanel label{display:block;margin:18px 0 8px}
 </style>
 </head>
 <body>
 <header>
   <div class="brand" onclick="showHome()" style="cursor:pointer">Semester Vocabulary</div>
-  <div class="top">
+  <div class="top" id="userNav" hidden>
+    <button class="linkbtn" onclick="showCourses()">课程设置</button>
+    <button class="linkbtn" onclick="logout()">退出</button>
     <button id="syncState" class="linkbtn sync off" onclick="syncNow()">● 未同步</button>
     <button class="linkbtn" onclick="syncNow()">同步</button>
     <button class="linkbtn" onclick="showManager()">词库管理</button>
@@ -37,68 +40,78 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
   </div>
 </header>
 <main id="app"></main>
-<footer class="signature" style="margin:0;padding:0 0 28px">版本 1.0</footer>
+<footer class="signature" style="margin:0;padding:0 0 28px">版本 2.0 · 同学试用</footer>
+<script src="vendor/supabase-2.57.4.js"></script>
 <script>
 const SUPABASE_URL="https://lgluwowzuwsabedbyblr.supabase.co";
 const SUPABASE_KEY="sb_publishable_04dsccL9acJYdCafv99nYg_yRgMaQdB";
-const VOCABULARY_OWNER="semester-vocabulary-shared";
-const COURSES={
- COM5103:"Policy and Regulations of New Media",
- COM5101:"Communication Fundamental",
- COM5501:"Internet Communication",
- COM5104:"Research Methods for Communication and New Media"
-};
+const authClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:'courselex-auth-v2'}});
+let session=null,accountEpoch=0;
+let COURSES={},courseRows=[];
+function weekCount(c){return courseRows.find(x=>x.id===c)?.weeks||13}
+function courseLabel(c){const r=courseRows.find(x=>x.id===c);return r?.code||r?.name||'课程'}
 let words=[];
-let currentCourse="COM5103",currentWeek=1,currentMode="choice",queue=[],qIndex=0,current=null;
-let progress=JSON.parse(localStorage.getItem("studyProgress")||"{}");
-let cloudOnline=false;
+let currentCourse="",currentWeek=1,currentMode="choice",queue=[],qIndex=0,current=null;
+let progress={};
+let cloudOnline=false,answerBusy=false;
 const app=document.getElementById("app");
 const syncState=document.getElementById("syncState");
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-function saveProgress(){localStorage.setItem("studyProgress",JSON.stringify(progress))}
+async function recordAnswer(status){
+ const word=current,epoch=accountEpoch;if(!word||!session||answerBusy)return;answerBusy=true;
+ try{await sb('user_vocabulary?id=eq.'+word.id,{method:'PATCH',body:JSON.stringify({status,seen_count:(word.seen_count||0)+1,wrong_count:(word.wrong_count||0)+(status==='unknown'?1:0)})});
+ if(epoch!==accountEpoch)return;word.status=status;word.seen_count=(word.seen_count||0)+1;if(status==='unknown')word.wrong_count=(word.wrong_count||0)+1;progress[word.id]=status;answerBusy=false;nextQ();}
+ catch(e){if(epoch===accountEpoch){answerBusy=false;alert('学习进度未保存，请重试：'+e.message)}}
+}
 function setSync(ok){cloudOnline=ok;syncState.className="linkbtn sync "+(ok?"on":"off");syncState.textContent=ok?"● 已同步":"● 未同步"}
 async function sb(path,opt={}){
- const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,{...opt,headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=representation",...(opt.headers||{})}});
- if(!r.ok) throw new Error(await r.text());
- const t=await r.text(); return t?JSON.parse(t):[];
+ const epoch=accountEpoch;const {data,error}=await authClient.auth.getSession();
+ if(error||!data.session||!session||data.session.user.id!==session.user.id)throw new Error('请重新登录');
+ const r=await fetch(SUPABASE_URL+'/rest/v1/'+path,{...opt,headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json',Prefer:'return=representation',...(opt.headers||{})}});
+ if(epoch!==accountEpoch)throw new Error('账号已切换');
+ if(!r.ok){let e;try{e=await r.json()}catch{}throw new Error(e?.message||'云端请求失败，请稍后重试')}
+ const t=await r.text();return t?JSON.parse(t):[];
 }
 async function loadCloud(){
+ if(!session)return false;const epoch=accountEpoch;
  try{
-   const loaded=[];
-   for(let offset=0;;offset+=1000){
-     const batch=await sb("vocabulary_data?select=id,course,week,en:english,zh:chinese,type:word_type&order=id.asc&limit=1000&offset="+offset);
-     loaded.push(...batch);
-     if(batch.length<1000)break;
-   }
-   words=loaded;
-   setSync(true); return true;
- }catch(e){console.error(e);setSync(false);return false}
+ const courses=await sb('user_courses?select=*&order=created_at.asc');const loaded=[];
+ for(let offset=0;;offset+=1000){const batch=await sb('user_vocabulary?select=id,course:course_id,week,en:english,zh:chinese,type:word_type,status,seen_count,wrong_count,legacy_id&order=id.asc&limit=1000&offset='+offset);loaded.push(...batch);if(batch.length<1000)break;}
+ if(epoch!==accountEpoch)return false;
+ courseRows=courses;COURSES=Object.fromEntries(courses.filter(c=>!c.archived).map(c=>[c.id,c.name]));
+ words=loaded.filter(w=>Object.hasOwn(COURSES,w.course));progress=Object.fromEntries(words.map(w=>[w.id,w.status]));
+ if(!COURSES[currentCourse]){currentCourse=Object.keys(COURSES)[0]||'';currentWeek=1;}currentWeek=Math.min(currentWeek,weekCount(currentCourse));
+ setSync(true);return true;
+ }catch(e){if(epoch===accountEpoch){setSync(false);console.error(e)}return false;}
 }
 async function syncNow(){
- await loadCloud();
- renderCurrent();
+ if(!session)return showAuth();
+ const epoch=accountEpoch;await loadCloud();
+ if(epoch===accountEpoch)renderCurrent();
 }
 function countCourse(c){return words.filter(w=>w.course===c).length}
 function countWeek(c,w){return words.filter(x=>x.course===c&&Number(x.week)===Number(w)).length}
 function knownCount(c){return words.filter(w=>w.course===c&&progress[w.id]==="known").length}
 
 function showHome(){
+ if(!session)return showAuth();
  window._view={type:"home"};
  app.innerHTML=`<section class="hero"><h1>把专业词汇<br>真正记下来。</h1><p>按课程、Week 学习。快速过词、四选一测试，并自动整理生词与熟词。</p></section>
- <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${n}</div><h2>${c}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>
+ <button class="secondary" onclick="showCourses()" style="margin-bottom:20px">自定义课程</button>
+ <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${esc(n)}</div><h2>${esc(courseLabel(c))}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>
  <section class="uploadHome"><div><h2>上传课件，整理专业术语</h2><p>选择课程和 Week，让 AI 整理中英文术语，自动加入对应词库。</p></div><button class="primary" onclick="showUpload()">上传课件</button></section>
  <div class="signature">Semester Vocabulary · @王大葱</div>`;
 }
 function showWeeks(c){
  currentCourse=c;window._view={type:"weeks",c};
- app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><div class="code">${c}</div><h1>${COURSES[c]}</h1></div></div>
- <div class="weeks">${Array.from({length:13},(_,i)=>i+1).map(w=>`<div class="week" onclick="showWeek('${c}',${w})"><strong>Week ${w}</strong><small>${countWeek(c,w)} words</small></div>`).join("")}</div>`;
+ app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><div class="code">${esc(courseLabel(c))}</div><h1>${esc(COURSES[c])}</h1></div></div>
+ <div class="weeks">${Array.from({length:weekCount(c)},(_,i)=>i+1).map(w=>`<div class="week" onclick="showWeek('${c}',${w})"><strong>Week ${w}</strong><small>${countWeek(c,w)} words</small></div>`).join("")}</div>`;
 }
 function showWeek(c,w){
  currentCourse=c;currentWeek=w;window._view={type:"week",c,w};
  const n=countWeek(c,w);
- app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showWeeks('${c}')">← 返回</button><div><div class="code">${c}</div><h1>Week ${w}</h1></div></div>
+ app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showWeeks('${c}')">← 返回</button><div><div class="code">${esc(courseLabel(c))}</div><h1>Week ${w}</h1></div></div>
  <div class="panel"><h2>${n} words</h2><p class="meta">选择学习方式</p><div class="row">
  <button class="primary" onclick="startStudy('choice')">四选一</button><button class="secondary" onclick="startStudy('recognition')">认识 / 不认识</button>
  <button class="secondary" onclick="showManager('${c}',${w})">管理本周词汇</button></div></div>`;
@@ -133,27 +146,27 @@ function showQuestion(){
  if(currentMode==="choice"){
    const distractors=buildDistractors(current);
    if(distractors.length<3){
-     app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${currentCourse} · Week ${currentWeek}</div><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p class="meta">词库中不同中文释义不足 4 个，暂时无法生成有效四选一。</p><br><button class="secondary" onclick="nextQ()">下一个</button></div>`;
+     app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${esc(courseLabel(currentCourse))} · Week ${currentWeek}</div><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p class="meta">词库中不同中文释义不足 4 个，暂时无法生成有效四选一。</p><br><button class="secondary" onclick="nextQ()">下一个</button></div>`;
      return;
    }
-   let opts=shuffle([current.zh,...distractors]);
-   app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="choices">${opts.map(o=>`<button class="choice" onclick='answerChoice(${JSON.stringify(o)},${JSON.stringify(current.zh)})'>${esc(o)}</button>`).join("")}</div></div>`;
+   let opts=shuffle([current.zh,...distractors]);window.answerOptions=opts;
+   app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${esc(courseLabel(currentCourse))} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="choices">${opts.map(o=>`<button class="choice" onclick="answerChoiceIndex(${opts.indexOf(o)})">${esc(o)}</button>`).join("")}</div></div>`;
  }else{
-   app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${currentCourse} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="bigBtns"><button class="secondary" onclick="markUnknown()">不认识</button><button class="primary" onclick="revealKnown()">认识</button></div></div>`;
+   app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${esc(courseLabel(currentCourse))} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="bigBtns"><button class="secondary" onclick="markUnknown()">不认识</button><button class="primary" onclick="revealKnown()">认识</button></div></div>`;
  }
 }
-function answerChoice(got,right){progress[current.id]=got===right?"known":"unknown";saveProgress();nextQ()}
-function markUnknown(){progress[current.id]="unknown";saveProgress();nextQ()}
+function answerChoiceIndex(i){recordAnswer(window.answerOptions[i]===current.zh?"known":"unknown")}
+function markUnknown(){recordAnswer("unknown")}
 function revealKnown(){app.innerHTML=`${studyBackButton()}<div class="study"><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p>和你想的一样吗？</p><div class="bigBtns"><button class="secondary" onclick="confirmKnown(false)">我错了</button><button class="primary" onclick="confirmKnown(true)">我没错</button></div></div>`}
-function confirmKnown(ok){progress[current.id]=ok?"known":"unknown";saveProgress();nextQ()}
+function confirmKnown(ok){recordAnswer(ok?"known":"unknown")}
 function nextQ(){qIndex++;showQuestion()}
 
 function showManager(c=currentCourse,w=currentWeek){
- currentCourse=c||"COM5103";currentWeek=Number(w)||1;window._view={type:"manager",c:currentCourse,w:currentWeek};
+ if(!session)return showAuth();if(!Object.keys(COURSES).length)return showCourses();currentCourse=COURSES[c]?c:Object.keys(COURSES)[0];currentWeek=Math.min(Number(w)||1,weekCount(currentCourse));window._view={type:"manager",c:currentCourse,w:currentWeek};
  app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><h1>词库管理</h1><div class="meta">添加、批量导入或删除词汇</div></div></div>
  <div class="panel">
- <div class="row"><select id="mc">${Object.keys(COURSES).map(x=>`<option ${x===currentCourse?"selected":""}>${x}</option>`).join("")}</select>
- <select id="mw">${Array.from({length:13},(_,i)=>i+1).map(x=>`<option value="${x}" ${x===currentWeek?"selected":""}>Week ${x}</option>`).join("")}</select></div>
+ <div class="row"><select id="mc">${Object.keys(COURSES).map(x=>`<option value="${x}" ${x===currentCourse?"selected":""}>${esc(courseLabel(x))} · ${esc(COURSES[x])}</option>`).join("")}</select>
+ <select id="mw">${Array.from({length:weekCount(currentCourse)},(_,i)=>i+1).map(x=>`<option value="${x}" ${x===currentWeek?"selected":""}>Week ${x}</option>`).join("")}</select></div>
  <h3>单个添加</h3><div class="row"><input id="en" placeholder="English"><input id="zh" placeholder="中文"></div><br><button class="primary" onclick="addOne()">添加单词</button>
  <h3 style="margin-top:30px">批量导入</h3><p class="meta">每行一个词：英文 | 中文，或英文[TAB]中文</p><textarea id="bulk" placeholder="common law | 普通法&#10;case law | 判例法"></textarea><br><br>
  <button class="primary" onclick="bulkImport()">批量导入</button><div id="notice" class="notice"></div>
@@ -169,10 +182,10 @@ function renderList(){
 }
 async function addOne(){
  const en=document.getElementById("en").value.trim(),zh=document.getElementById("zh").value.trim();if(!en||!zh)return notice("请输入英文和中文",true);
- try{await sb("vocabulary_data",{method:"POST",body:JSON.stringify(cloudWord(en,zh))});await loadCloud();renderList();notice("已保存到云端："+en)}
+ try{await sb("user_vocabulary",{method:"POST",body:JSON.stringify(cloudWord(en,zh))});await loadCloud();renderList();notice("已保存到云端："+en)}
  catch(e){notice("保存失败："+e.message,true)}
 }
-function cloudWord(en,zh){return {device_user:VOCABULARY_OWNER,course:currentCourse,week:currentWeek,english:en,chinese:zh,word_type:"Professional term"}}
+function cloudWord(en,zh){return {user_id:session.user.id,course_id:currentCourse,week:currentWeek,english:en,chinese:zh,word_type:"Professional term"}}
 function parseBulk(raw){
  return raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(line=>{
    let p=line.includes("\t")?line.split("\t"):line.split("|");
@@ -188,33 +201,30 @@ async function bulkImport(){
  for(const x of items){const k=x.en.toLowerCase();if(existing.has(k)){skipped++;continue}existing.add(k);rows.push(cloudWord(x.en,x.zh))}
  if(!rows.length)return notice("没有新增词汇；这些词已经存在。",true);
  try{
-   await sb("vocabulary_data",{method:"POST",body:JSON.stringify(rows)});
+   await sb("user_vocabulary",{method:"POST",body:JSON.stringify(rows)});
    await loadCloud();renderList();document.getElementById("bulk").value="";
    notice(`成功导入 ${rows.length} 个词${skipped?`，跳过 ${skipped} 个重复词`:""}。`);
  }catch(e){notice("批量导入失败："+e.message,true)}
 }
 async function deleteWord(id){
  if(!confirm("确定删除这个词吗？"))return;
- try{await sb("vocabulary_data?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});delete progress[id];saveProgress();await loadCloud();renderList();notice("已删除")}
+ try{await sb("user_vocabulary?id=eq."+id,{method:"DELETE",headers:{Prefer:"return=minimal"}});delete progress[id];await loadCloud();renderList();notice("已删除")}
  catch(e){notice("删除失败："+e.message,true)}
 }
 function notice(t,bad=false){const n=document.getElementById("notice");if(n){n.textContent=t;n.className="notice"+(bad?" danger":"")}}
 
 function showBook(kind){
+ if(!session)return showAuth();
  window._view={type:"book",kind};const arr=words.filter(w=>progress[w.id]===kind);
  app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><h1>${kind==="known"?"熟词本":"生词本"}</h1><div class="meta">${arr.length} words</div></div></div>
- <div class="panel">${arr.length?arr.map(x=>`<div class="item"><div><b>${esc(x.en)}</b><div class="zh">${esc(x.zh)} · ${x.course} Week ${x.week}</div></div></div>`).join(""):`<div class="empty">暂无词汇</div>`}</div>`;
+ <div class="panel">${arr.length?arr.map(x=>`<div class="item"><div><b>${esc(x.en)}</b><div class="zh">${esc(x.zh)} · ${esc(courseLabel(x.course))} Week ${x.week}</div></div></div>`).join(""):`<div class="empty">暂无词汇</div>`}</div>`;
 }
 function renderCurrent(){
  const v=window._view||{type:"home"};
- if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else if(v.type==="upload")refreshUploadState();else showHome();
+ if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else if(v.type==="upload")refreshUploadState();else if(v.type==="courses")showCourses();else showHome();
 }
-(async function init(){
- showHome();
- await loadCloud();
- showHome();
-})();
 </script>
-<script src="upload.js?v=1.0-recovery"></script>
+<script src="upload.js?v=2.0"></script>
+<script src="accounts.js?v=2.0"></script>
 </body>
 </html>

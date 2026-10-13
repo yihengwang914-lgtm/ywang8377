@@ -1,16 +1,18 @@
-const COURSEWARE_ENDPOINT=SUPABASE_URL+'/functions/v1/courseware-import';
-const UPLOAD_JOB_KEY='semesterCoursewareJob',UPLOAD_RESULT_KEY='semesterCoursewareResult';
+const COURSEWARE_ENDPOINT=SUPABASE_URL+'/functions/v1/courselex-user-import';
+let UPLOAD_JOB_KEY='',UPLOAD_RESULT_KEY='';
 function readUploadStorage(key){try{return JSON.parse(sessionStorage.getItem(key)||'null')}catch{return null}}
-let uploadJob=readUploadStorage(UPLOAD_JOB_KEY),uploadResult=readUploadStorage(UPLOAD_RESULT_KEY);
+let uploadJob=null,uploadResult=null;
+function resetUploadAccount(uid){UPLOAD_JOB_KEY="courselex-job:"+uid;UPLOAD_RESULT_KEY="courselex-result:"+uid;uploadJob=uid?readUploadStorage(UPLOAD_JOB_KEY):null;uploadResult=uid?readUploadStorage(UPLOAD_RESULT_KEY):null;uploadFile=null;uploadBusy=false;uploadPollRunning=false;uploadNeedsFile=false;uploadStatusText="";uploadStatusKind="";uploadCourse=currentCourse;uploadWeek=currentWeek;}
 let uploadFile=null,uploadBusy=false,uploadPollRunning=false,uploadNeedsFile=false,uploadStatusText='',uploadStatusKind='',uploadConfigured=null;
 let uploadCourse=uploadJob?.course||currentCourse,uploadWeek=uploadJob?.week||currentWeek;
 function showUpload(){
+ if(!session)return showAuth();if(!Object.keys(COURSES).length)return showCourses();if(!COURSES[uploadCourse])uploadCourse=currentCourse;uploadWeek=Math.min(uploadWeek,weekCount(uploadCourse));
  window._view={type:'upload'};
  app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回首页</button><div><div class="code">Semester Vocabulary</div><h1>上传课件</h1></div></div>
  <section class="panel uploadPanel"><h2>让课件变成你的词库</h2><p class="meta">AI 整理专业术语和中文释义，按课程与 Week 自动入库。</p>
  <form id="uploadForm" onsubmit="uploadCourseware(event)"><div class="uploadFields">
- <div><label for="uploadCourse">课程</label><select id="uploadCourse" onchange="uploadCourse=this.value">${Object.keys(COURSES).map(c=>`<option value="${c}" ${c===uploadCourse?'selected':''}>${c} · ${COURSES[c]}</option>`).join('')}</select></div>
- <div><label for="uploadWeek">Week</label><select id="uploadWeek" onchange="uploadWeek=Number(this.value)">${Array.from({length:13},(_,i)=>i+1).map(w=>`<option value="${w}" ${w===Number(uploadWeek)?'selected':''}>Week ${w}</option>`).join('')}</select></div></div>
+ <div><label for="uploadCourse">课程</label><select id="uploadCourse" onchange="uploadCourse=this.value;uploadWeek=1;showUpload()">${Object.keys(COURSES).map(c=>`<option value="${c}" ${c===uploadCourse?'selected':''}>${esc(courseLabel(c))} · ${esc(COURSES[c])}</option>`).join('')}</select></div>
+ <div><label for="uploadWeek">Week</label><select id="uploadWeek" onchange="uploadWeek=Number(this.value)">${Array.from({length:weekCount(uploadCourse)},(_,i)=>i+1).map(w=>`<option value="${w}" ${w===Number(uploadWeek)?'selected':''}>Week ${w}</option>`).join('')}</select></div></div>
  <div class="uploadFile"><label for="coursewareFile">选择课件</label><input id="coursewareFile" type="file" accept=".pdf,.pptx,.docx,.txt" onchange="selectCourseware(this.files[0])"><p id="uploadFilename" class="uploadHint"></p><p class="uploadHint">支持 PDF、PPTX、DOCX、TXT，单个文件不超过 10 MB。<br>含图片、扫描页或图表的课件，建议先转成 PDF。</p></div>
  <label for="uploadPassword">上传口令</label><input id="uploadPassword" type="password" autocomplete="off" maxlength="512" placeholder="输入你的上传口令">
  <p class="uploadHint">课件将发送至 OpenAI 分析，可能产生 API 费用。只提取课件中的专业术语，已有词汇自动跳过。</p>
@@ -38,9 +40,10 @@ function refreshUploadState(){
 async function coursewareRequest(body,{token='',timeout=70000}={}){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
  try{
+  const epoch=accountEpoch;const {data:{session:active}}=await authClient.auth.getSession();if(!active||!session||active.user.id!==session.user.id)throw new Error('请重新登录');
   const isForm=body instanceof FormData;
-  const response=await fetch(COURSEWARE_ENDPOINT,{method:'POST',headers:{apikey:SUPABASE_KEY,...(token?{'x-upload-token':token}:{}),...(isForm?{}:{'Content-Type':'application/json'})},body:isForm?body:JSON.stringify(body),signal:controller.signal});
-  const data=await response.json();if(!response.ok){const e=new Error(data.error||'处理失败，请稍后重试。');e.status=response.status;throw e;}return data;
+  const response=await fetch(COURSEWARE_ENDPOINT,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+active.access_token,...(token?{'x-upload-token':token}:{}),...(isForm?{}:{'Content-Type':'application/json'})},body:isForm?body:JSON.stringify(body),signal:controller.signal});
+  const data=await response.json();if(epoch!==accountEpoch)throw new Error('账号已切换');if(!response.ok){const e=new Error(data.error||'处理失败，请稍后重试。');e.status=response.status;throw e;}return data;
  }catch(e){if(e.name==='AbortError')throw new Error(uploadJob?'连接超时，任务编号已保存。请点击“继续检查”查看上传或分析进度，无需重复提交。':'未能连接上传服务，尚未取得任务编号。请检查网络后重试。');throw e;}finally{clearTimeout(timer);}
 }
 async function checkUploadService(){
@@ -60,8 +63,8 @@ async function uploadCourseware(event){
  if(!/\.(pdf|pptx|docx|txt)$/i.test(file.name))return setUploadStatus('请选择 PDF、PPTX、DOCX 或 TXT 文件。','error');
  if(!file.size||file.size>10*1024*1024)return setUploadStatus('课件不能为空，且不能超过 10 MB。','error');
  if(!token)return setUploadStatus('请输入上传口令。','error');
- if(!Object.hasOwn(COURSES,course)||!Number.isInteger(week)||week<1||week>13)return setUploadStatus('请选择课程和 Week。','error');
- uploadBusy=true;uploadResult=null;sessionStorage.removeItem(UPLOAD_RESULT_KEY);setUploadStatus('正在上传 '+file.name+'…');
+ if(!Object.hasOwn(COURSES,course)||!Number.isInteger(week)||week<1||week>weekCount(course))return setUploadStatus('请选择课程和 Week。','error');
+ const epoch=accountEpoch;uploadBusy=true;uploadResult=null;sessionStorage.removeItem(UPLOAD_RESULT_KEY);setUploadStatus('正在上传 '+file.name+'…');
  try{
   const prepared=await coursewareRequest({action:'prepare',course,week,filename:file.name},{token,timeout:20000});
   uploadJob={job:prepared.job,filename:prepared.filename,course:prepared.course,week:prepared.week};sessionStorage.setItem(UPLOAD_JOB_KEY,JSON.stringify(uploadJob));
@@ -72,13 +75,14 @@ async function uploadCourseware(event){
   uploadJob={job:result.job,filename:result.filename,course:result.course,week:result.week};sessionStorage.setItem(UPLOAD_JOB_KEY,JSON.stringify(uploadJob));
   const pw=document.getElementById('uploadPassword');if(pw)pw.value='';
   uploadBusy=false;await pollCourseware();
- }catch(e){uploadBusy=false;if([400,401,403,413,422].includes(e.status)){uploadJob=null;sessionStorage.removeItem(UPLOAD_JOB_KEY);}setUploadStatus(e.message||'上传连接中断。已保存任务可点击“继续检查”确认进度。','error');}
+ }catch(e){if(epoch!==accountEpoch)return;uploadBusy=false;if([400,401,403,413,422].includes(e.status)){uploadJob=null;sessionStorage.removeItem(UPLOAD_JOB_KEY);}setUploadStatus(e.message||'上传连接中断。已保存任务可点击“继续检查”确认进度。','error');}
 }
 async function pollCourseware(){
  if(!uploadJob||uploadPollRunning)return;
- uploadPollRunning=true;uploadBusy=true;const started=Date.now();
+ const epoch=accountEpoch;uploadPollRunning=true;uploadBusy=true;const started=Date.now();
  try{
   for(let attempt=0;attempt<180;attempt++){
+   if(epoch!==accountEpoch)return;
    setUploadStatus(`正在整理 ${uploadJob.filename} → ${uploadJob.course} · Week ${uploadJob.week}。已等待 ${Math.floor((Date.now()-started)/1000)} 秒，请勿重复上传。`);
    const result=await coursewareRequest({action:'poll',job:uploadJob.job});
    if(result.phase==='awaiting_upload'){
@@ -96,21 +100,21 @@ async function pollCourseware(){
   }
   uploadBusy=false;setUploadStatus('课件仍在分析，稍后点击“继续检查”，无需重新上传。');
  }catch(e){
-  uploadBusy=false;
+  if(epoch!==accountEpoch)return;uploadBusy=false;
   if([401,403,404,422,502].includes(e.status)){uploadJob=null;sessionStorage.removeItem(UPLOAD_JOB_KEY);}
   setUploadStatus(e.message||'网络连接中断。点击“继续检查”可继续已有任务。','error');
- }finally{uploadBusy=false;uploadPollRunning=false;refreshUploadState();}
+ }finally{if(epoch===accountEpoch){uploadBusy=false;uploadPollRunning=false;refreshUploadState();}}
 }
 async function retryCoursewareFile(){
  if(!uploadJob||uploadBusy)return;
  const token=document.getElementById('uploadPassword').value;
  if(!uploadFile||uploadFile.name.replace(/[\u0000-\u001f\u007f]/g,'').slice(0,160)!==uploadJob.filename)return setUploadStatus('请重新选择 '+uploadJob.filename+'。','error');
  if(!token)return setUploadStatus('请重新输入上传口令。','error');
- uploadBusy=true;setUploadStatus('使用已保存的任务编号重试上传文件…');
+ const epoch=accountEpoch;uploadBusy=true;setUploadStatus('使用已保存的任务编号重试上传文件…');
  try{
   const form=new FormData();form.append('file',uploadFile,uploadFile.name);form.append('course',uploadJob.course);form.append('week',String(uploadJob.week));form.append('job',uploadJob.job);
   await coursewareRequest(form,{token,timeout:120000});uploadNeedsFile=false;uploadBusy=false;await pollCourseware();
- }catch(e){uploadBusy=false;setUploadStatus(e.message||'上传连接中断，可稍后重试。','error');}
+ }catch(e){if(epoch!==accountEpoch)return;uploadBusy=false;setUploadStatus(e.message||'上传连接中断，可稍后重试。','error');}
 }
 function renderUploadResult(){
  const el=document.getElementById('uploadResults');if(!el)return;
