@@ -57,3 +57,7 @@ Course vocabulary website: https://yihengwang914-lgtm.github.io/ywang8377/
 - [OpenAI 结构化输出](https://developers.openai.com/api/docs/guides/structured-outputs)
 - [OpenAI 后台模式](https://developers.openai.com/api/docs/guides/background)
 - [Supabase Edge Function 密钥配置](https://supabase.com/docs/guides/functions/secrets)
+
+## 两种词表整理方式
+
+首页同时提供“用自己的 AI 整理”和“API 自动整理”。前者复制提示词供用户在自己的 AI 中上传课件，支持粘贴两列词表及 TXT / TSV / JSON 文件导入；导入前预览并去重，不调用 AI API。后者保留原有课件自动整理和上传口令流程。两者都写入当前登录用户的词库，沿用同一云端学习进度。浏览器部署须包含 `own-ai.js`。

@@ -8,7 +8,8 @@ let uploadCourse=uploadJob?.course||currentCourse,uploadWeek=uploadJob?.week||cu
 function showUpload(){
  if(!session)return showAuth();if(!Object.keys(COURSES).length)return showCourses();if(!COURSES[uploadCourse])uploadCourse=currentCourse;uploadWeek=Math.min(uploadWeek,weekCount(uploadCourse));
  window._view={type:'upload'};
- app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回首页</button><div><div class="code">Semester Vocabulary</div><h1>上传课件</h1></div></div>
+ app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回首页</button><div><div class="code">Semester Vocabulary</div><h1>API 自动整理</h1></div></div>
+ <div class="uploadActions" style="margin-bottom:20px"><button class="secondary" onclick="showOwnAI(uploadCourse,uploadWeek)">用自己的 AI 整理后导入</button></div>
  <section class="panel uploadPanel"><h2>让课件变成你的词库</h2><p class="meta">AI 整理专业术语和中文释义，按课程与 Week 自动入库。</p>
  <form id="uploadForm" onsubmit="uploadCourseware(event)"><div class="uploadFields">
  <div><label for="uploadCourse">课程</label><select id="uploadCourse" onchange="uploadCourse=this.value;uploadWeek=1;showUpload()">${Object.keys(COURSES).map(c=>`<option value="${c}" ${c===uploadCourse?'selected':''}>${esc(courseLabel(c))} · ${esc(COURSES[c])}</option>`).join('')}</select></div>
