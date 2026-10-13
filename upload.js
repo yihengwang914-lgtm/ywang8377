@@ -2,7 +2,7 @@ const COURSEWARE_ENDPOINT=SUPABASE_URL+'/functions/v1/courselex-user-import';
 let UPLOAD_JOB_KEY='',UPLOAD_RESULT_KEY='';
 function readUploadStorage(key){try{return JSON.parse(sessionStorage.getItem(key)||'null')}catch{return null}}
 let uploadJob=null,uploadResult=null;
-function resetUploadAccount(uid){UPLOAD_JOB_KEY="courselex-job:"+uid;UPLOAD_RESULT_KEY="courselex-result:"+uid;uploadJob=uid?readUploadStorage(UPLOAD_JOB_KEY):null;uploadResult=uid?readUploadStorage(UPLOAD_RESULT_KEY):null;uploadFile=null;uploadBusy=false;uploadPollRunning=false;uploadNeedsFile=false;uploadStatusText="";uploadStatusKind="";uploadCourse=currentCourse;uploadWeek=currentWeek;}
+function resetUploadAccount(uid){UPLOAD_JOB_KEY="courselex-job:"+uid;UPLOAD_RESULT_KEY="courselex-result:"+uid;uploadJob=uid?readUploadStorage(UPLOAD_JOB_KEY):null;uploadResult=uid?readUploadStorage(UPLOAD_RESULT_KEY):null;uploadFile=null;uploadBusy=false;uploadPollRunning=false;uploadNeedsFile=false;uploadStatusText="";uploadStatusKind="";uploadCourse=uploadJob?.course||currentCourse;uploadWeek=uploadJob?.week||currentWeek;}
 let uploadFile=null,uploadBusy=false,uploadPollRunning=false,uploadNeedsFile=false,uploadStatusText='',uploadStatusKind='',uploadConfigured=null;
 let uploadCourse=uploadJob?.course||currentCourse,uploadWeek=uploadJob?.week||currentWeek;
 function showUpload(){
@@ -83,7 +83,7 @@ async function pollCourseware(){
  try{
   for(let attempt=0;attempt<180;attempt++){
    if(epoch!==accountEpoch)return;
-   setUploadStatus(`正在整理 ${uploadJob.filename} → ${uploadJob.course} · Week ${uploadJob.week}。已等待 ${Math.floor((Date.now()-started)/1000)} 秒，请勿重复上传。`);
+   setUploadStatus(`正在整理 ${uploadJob.filename} → ${courseLabel(uploadJob.course)} · Week ${uploadJob.week}。已等待 ${Math.floor((Date.now()-started)/1000)} 秒，请勿重复上传。`);
    const result=await coursewareRequest({action:'poll',job:uploadJob.job});
    if(result.phase==='awaiting_upload'){
     uploadNeedsFile=true;uploadBusy=false;setUploadStatus('任务编号已保存，但文件还未完整上传。请选回 '+uploadJob.filename+'，输入上传口令，然后点击“重试上传文件”。','error');return;
@@ -92,8 +92,8 @@ async function pollCourseware(){
    if(result.message)setUploadStatus(result.message+' 已保存任务编号，请勿重复上传。');
    if(result.status==='completed'){
     uploadResult=result;sessionStorage.setItem(UPLOAD_RESULT_KEY,JSON.stringify(result));uploadJob=null;sessionStorage.removeItem(UPLOAD_JOB_KEY);
-    const synced=await loadCloud();uploadBusy=false;
-    setUploadStatus(`已整理 ${result.extracted} 个术语，新增 ${result.inserted} 个，跳过 ${result.skipped} 个已有词汇。已保存到 ${result.course} · Week ${result.week}。${synced?'':'词汇已保存；当前页面同步失败，可稍后点击“同步”。'}`,'success');
+    const synced=await loadCloud();if(epoch!==accountEpoch)return;uploadBusy=false;
+    setUploadStatus(`已整理 ${result.extracted} 个术语，新增 ${result.inserted} 个，跳过 ${result.skipped} 个已有词汇。已保存到 ${courseLabel(result.course)} · Week ${result.week}。${synced?'':'词汇已保存；当前页面同步失败，可稍后点击“同步”。'}`,'success');
     return;
    }
    await new Promise(resolve=>setTimeout(resolve,3000));
@@ -120,7 +120,7 @@ function renderUploadResult(){
  const el=document.getElementById('uploadResults');if(!el)return;
  if(!uploadResult){el.innerHTML='';return;}
  const r=uploadResult;
- el.innerHTML=`<h3>${esc(r.course)} · Week ${Number(r.week)} 的整理结果</h3><p class="uploadHint">${esc(r.filename)} · ${Number(r.extracted)} 个术语</p><p class="uploadHint">${esc(r.coverage_note||'')}</p>${(r.warnings||[]).map(w=>`<p class="uploadHint">${esc(w)}</p>`).join('')}
+ el.innerHTML=`<h3>${esc(courseLabel(r.course))} · Week ${Number(r.week)} 的整理结果</h3><p class="uploadHint">${esc(r.filename)} · ${Number(r.extracted)} 个术语</p><p class="uploadHint">${esc(r.coverage_note||'')}</p>${(r.warnings||[]).map(w=>`<p class="uploadHint">${esc(w)}</p>`).join('')}
  <div class="uploadActions"><button class="secondary" onclick="showWeek('${esc(r.course)}',${Number(r.week)})">去本周学习</button><button class="linkbtn" onclick="showManager('${esc(r.course)}',${Number(r.week)})">查看本周词库</button></div>
  ${(r.terms||[]).map(t=>`<details><summary><b>${esc(t.english)}</b><span class="zh">${esc(t.chinese)}</span></summary><p class="uploadHint">出处：${esc(t.source)}</p><blockquote>${esc(t.quote)}</blockquote></details>`).join('')}`;
 }
