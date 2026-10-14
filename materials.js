@@ -32,7 +32,7 @@ async function continueMaterials(){
  try{
   if(state.stage==='reading'){
    for(const [index,file] of state.files.entries()){if(epoch!==accountEpoch)return;if(file.text||file.error)continue;file.status='正在读取';materialStatus('正在读取 '+(index+1)+' / '+state.files.length+'：'+file.path);
-    try{file.text=await readCoursewareText(file.file,{ocr:async image=>{const r=await materialRequest({action:'ocr',batch:state.batch,file:index,image});return r.text},onProgress:text=>materialStatus(file.path+' · '+text)});file.status='文字已读取'}catch(e){file.error=readableMaterialError(e);file.status='需处理'}
+    try{file.text=await readCoursewareText(file.file,{ocr:async image=>{const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(image))),b=>b.toString(16).padStart(2,'0')).join('');file.ocrCache=file.ocrCache||{};if(file.ocrCache[hash])return file.ocrCache[hash];const r=await materialRequest({action:'ocr',batch:state.batch,file:index,image});file.ocrCache[hash]=r.text;await saveMaterialState();return r.text},onProgress:text=>materialStatus(file.path+' · '+text)});file.status='文字已读取'}catch(e){if([429,503,504,401].includes(e.status)){file.status='等待继续';await saveMaterialState();throw e}file.error=readableMaterialError(e);file.status='需处理'}
     await saveMaterialState();renderMaterialProgress();
    }
    if(epoch!==accountEpoch)return;state.stage='organizing';await saveMaterialState();
@@ -51,7 +51,7 @@ async function continueMaterials(){
    }catch(e){if([429,503,504,401].includes(e.status)||!e.status){file.status='等待继续';await saveMaterialState();throw e}file.error=e.message}
    await saveMaterialState();if(!words.length)await loadCloud();renderMaterialProgress();
   }
-  if(epoch!==accountEpoch)return;state.stage='finished';await saveMaterialState();await loadCloud();materialStatus('已经安排好了。点“开始今天的任务”就能学，课程名称和词汇以后随时管理。');
+  if(epoch!==accountEpoch)return;state.stage='finished';await saveMaterialState();await loadCloud();const completed=state.files.filter(f=>f.result).length;materialStatus(completed?'可用的资料已经整理好。现在可以开始今天的任务，需处理的文件在报告里。':'这批资料还没有成功整理，请查看报告中的原因，换一份可读课件再试。');
  }catch(e){if(epoch===accountEpoch)materialStatus(e.message+' 已保留进度，稍后点击“继续整理”。')}finally{if(epoch===accountEpoch){materialBusy=false;if(window._view?.type==='home')showAssistant()}}
 }
 function startDailyStudy(unknownOnly=false){

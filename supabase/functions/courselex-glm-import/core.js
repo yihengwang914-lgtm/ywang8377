@@ -43,7 +43,7 @@ export function createHandler({env,fetch:fetcher=fetch}){
    const bytes=new Uint8Array(length);let offset=0;for(const b of blocks){bytes.set(b,offset);offset+=b.length}let data;try{data=JSON.parse(new TextDecoder().decode(bytes))}catch{throw new Failure(400,'请求格式无效。')}
    if(data.action==='prepare'){
     const {course,week,parts}=data;const filename=typeof data.filename==='string'?data.filename.replace(/[\u0000-\u001f\u007f]/g,'').slice(0,160):'';
-    if(!uuid(course)||!Number.isInteger(week)||week<1||week>52||!filename||!Array.isArray(parts)||parts.length<1||parts.length>32||parts.some(p=>typeof p!=='string'||!p.trim()||p.length>6000))throw new Failure(400,'课件内容或目标课程无效，请拆分过长文件。');
+    if(!uuid(course)||!Number.isInteger(week)||week<1||week>52||!filename||!Array.isArray(parts)||parts.length<1||parts.length>64||parts.some(p=>typeof p!=='string'||!p.trim()||p.length>6000))throw new Failure(400,'课件内容或目标课程无效，请拆分过长文件。');
     await owned(course,week,authorization);
     await db(jobs+'?created_at=lt.'+encodeURIComponent(new Date(Date.now()-86400000).toISOString()),'DELETE');
     let batchFields={};
@@ -69,8 +69,11 @@ export function createHandler({env,fetch:fetcher=fetch}){
    if(job.cursor<job.parts.length){
     let r,answer;const lease=crypto.randomUUID();if(!await db('/rest/v1/rpc/acquire_material_ai','POST',{p_model:'glm-4.7-flash',p_owner:lease}))throw new Failure(429,'莱克正在为同学整理资料，已自动排队。');try{r=await fetcher('https://open.bigmodel.cn/api/paas/v4/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+value('GLM_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:'glm-4.7-flash',thinking:{type:'disabled'},stream:false,max_tokens:8192,response_format:{type:'json_object'},messages:[{role:'system',content:instruction},{role:'user',content:job.parts[job.cursor]}]}),signal:AbortSignal.timeout(55000)});answer=await r.json()}catch{throw new Failure(504,'免费 AI 暂时响应较慢，正在等待重试。')}finally{try{await db('/rest/v1/rpc/release_material_ai','POST',{p_model:'glm-4.7-flash',p_owner:lease})}catch{}}
     if(!r.ok){console.warn(JSON.stringify({event:'glm_request_rejected',status:r.status,code:answer.error?.code||'unknown'}));throw new Failure(r.status===429?429:503,r.status===429?'免费模型请求较多，请稍后继续检查。':'智谱服务暂时不可用，请稍后继续检查。');}
+    async function splitCurrentPart(){const text=job.parts[job.cursor];if(text.length<1400||job.parts.length>=64)return false;const middle=Math.floor(text.length/2);const boundary=Math.max(text.lastIndexOf(' ',middle),text.lastIndexOf('\n',middle));const end=boundary>middle/2?boundary:middle;const parts=[...job.parts.slice(0,job.cursor),text.slice(0,Math.min(text.length,end+120)),text.slice(Math.max(0,end-120)),...job.parts.slice(job.cursor+1)];await update(job.id,{parts,status:'ready'});return parts.length;}
+    if(answer.choices?.[0]?.finish_reason==='length'){const total=await splitCurrentPart();if(total)return reply({status:'processing',done:job.cursor,total,message:'内容较密，已自动拆成小段继续整理。'});}
     if(answer.choices?.[0]?.finish_reason!=='stop')throw new Failure(422,'AI 结果被截断，本次尚未入库，请拆分文件。');
     let result;try{result=JSON.parse(answer.choices[0].message.content)}catch{throw new Failure(422,'AI 未返回有效词表，本次尚未入库。')}
+    if(result.complete===false||Array.isArray(result.terms)&&result.terms.length>200){const total=await splitCurrentPart();if(total)return reply({status:'processing',done:job.cursor,total,message:'内容较密，已自动拆成小段继续整理。'});}
     const terms=validateTerms(result,job.parts[job.cursor]).map(t=>({...t,source:'课件文字第 '+(job.cursor+1)+' 段'}));
     const combined=[...job.terms,...terms];if(combined.length>1500)throw new Failure(422,'词汇超过单次 1500 个上限，请拆分文件。');
     await update(job.id,{terms:combined,cursor:job.cursor+1,status:'ready'});return reply({status:'processing',done:job.cursor+1,total:job.parts.length});
