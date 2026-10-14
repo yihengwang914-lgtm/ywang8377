@@ -114,7 +114,7 @@ function showHome(){
  <button class="secondary" onclick="showCourses()" style="margin-bottom:20px">自定义课程</button>
  <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${esc(n)}</div><h2>${esc(courseLabel(c))}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>
  <section class="uploadHome"><div><h2>上传课件，整理专业术语</h2><p>选择适合你的方式，整理中英文词汇并保存到个人词库。</p></div><div class="uploadActions"><button class="primary" onclick="showOwnAI()">用自己的 AI 整理</button><button class="secondary" onclick="showUpload()">API 自动整理</button></div></section>
- <div class="signature">蒙卦 · 启蒙 · 求知</div>`;
+ `;
 }
 function showWeeks(c){
  currentCourse=c;window._view={type:"weeks",c};
