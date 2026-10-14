@@ -54,7 +54,7 @@ async function loadAccountProfile(){
  return userProfile;
 }
 async function switchAccount(active){
- accountEpoch++;answerBusy=false;stopActivityTracking();session=active;userProfile=null;isAdmin=false;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;currentCourse='';currentWeek=1;setSync(false);resetUploadAccount(active?.user.id||'');
+ accountEpoch++;resetSharedLibraryAccount();answerBusy=false;stopActivityTracking();session=active;userProfile=null;isAdmin=false;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;currentCourse='';currentWeek=1;setSync(false);resetUploadAccount(active?.user.id||'');
  document.getElementById('userNav').hidden=!active;
  const adminLink=document.getElementById('adminLink');if(adminLink)adminLink.hidden=true;
  if(!active)return showAuth();
@@ -69,10 +69,10 @@ async function switchAccount(active){
  }catch(e){if(epoch===accountEpoch)app.innerHTML='<div class="panel"><h2>暂时无法同步</h2><p>请检查网络后重试，课程、资料与词库仍保存在云端。</p><button class="primary" onclick="switchAccount(session)">重试</button><button class="linkbtn" onclick="logout()">退出</button></div>';}
 }
 function profileFields(data=null){return ` <label for="profileUsername">用户名</label><input id="profileUsername" autocomplete="nickname" minlength="2" maxlength="40" required value="${esc(data?.username||'')}" placeholder="例如：Even Wang">
- <label for="profileSchool">学校</label><div class="schoolPicker"><input id="profileSchool" autocomplete="off" minlength="2" maxlength="120" required value="${esc(data?.school||'')}" placeholder="任何地区学校均可填写，支持中英文搜索" oninput="showSchoolSuggestions(this.value);updateEducationEnglish()" onfocus="showSchoolSuggestions(this.value)" onblur="setTimeout(hideSchoolSuggestions,180)"><div id="schoolSuggestions" class="suggestions" hidden></div></div>
+ <label for="profileSchool">学校</label><div class="schoolPicker"><input id="profileSchool" autocomplete="off" minlength="2" maxlength="120" required value="${esc(data?.school||'')}" placeholder="任何地区学校均可填写，支持中英文搜索" oninput="showSchoolSuggestions(this.value);syncEducationField('school')" onfocus="showSchoolSuggestions(this.value)" onblur="setTimeout(hideSchoolSuggestions,180)"><div id="schoolSuggestions" class="suggestions" hidden></div></div>
  <label for="profileDegree">学历</label><select id="profileDegree" required onchange="updateEducationEnglish();showMajorSuggestions()"><option value="">请选择</option>${[['Bachelor','本科 · Bachelor'],['Master','硕士 · Master'],['Doctorate','博士 · Doctorate / PhD'],['Associate','专科 · Associate'],['Diploma','文凭 · Diploma'],['Other','其他 · Other']].map(([v,l])=>`<option value="${v}" ${data?.degree===v?'selected':''}>${l}</option>`).join('')}</select>
- <label for="profileMajor">专业</label><div class="schoolPicker"><input id="profileMajor" minlength="2" maxlength="120" required value="${esc(data?.major||'')}" placeholder="输入专业名，或选择下方推荐" oninput="showMajorSuggestions(this.value);updateEducationEnglish()" onfocus="showMajorSuggestions(this.value)"><div id="majorSuggestions" class="suggestions" hidden></div></div><p class="meta" id="majorHint">按学校和学历匹配已核对的专业；没有推荐时可自由填写。</p>
- <div class="englishFields"><p class="meta">后台统一使用英文。已识别的名称会自动填写，其他名称请补充学校官方英文名及专业英文名。</p><label for="profileNameEn">英文用户名 / 拼音</label><input id="profileNameEn" maxlength="80" required pattern="[ -~]+" value="${esc(data?.username_en||(/^[ -~]+$/.test(data?.username||'')?data.username:''))}" placeholder="例如：Even Wang"><label for="profileSchoolEn">学校英文名</label><input id="profileSchoolEn" maxlength="200" required pattern="[ -~]+" value="${esc(data?.school_en||'')}"><label for="profileMajorEn">专业英文名</label><input id="profileMajorEn" maxlength="200" required pattern="[ -~]+" value="${esc(data?.major_en||'')}"></div>
+ <label for="profileMajor">专业</label><div class="schoolPicker"><input id="profileMajor" minlength="2" maxlength="120" required value="${esc(data?.major||'')}" placeholder="输入专业名，或选择下方推荐" oninput="showMajorSuggestions(this.value);syncEducationField('major')" onfocus="showMajorSuggestions(this.value)"><div id="majorSuggestions" class="suggestions" hidden></div></div><p class="meta" id="majorHint">按学校和学历匹配已核对的专业；没有推荐时可自由填写。</p>
+ <div class="englishFields"><p class="meta">学校与专业支持中英文双向填写，选择推荐项会同时补齐两种语言。目录中没有的名称可自由填写，并手动补充另一种语言；后台统一使用英文。学校与专业用于可选词库匹配和试用分析。</p><label for="profileNameEn">英文用户名 / 拼音</label><input id="profileNameEn" maxlength="80" required pattern="[ -~]+" value="${esc(data?.username_en||(/^[ -~]+$/.test(data?.username||'')?data.username:''))}" placeholder="例如：Even Wang"><label for="profileSchoolEn">学校英文名</label><input id="profileSchoolEn" oninput="syncEducationField('schoolEn')" maxlength="200" required pattern="[ -~]+" value="${esc(data?.school_en||'')}"><label for="profileMajorEn">专业英文名</label><input id="profileMajorEn" oninput="syncEducationField('majorEn')" maxlength="200" required pattern="[ -~]+" value="${esc(data?.major_en||'')}"></div>
 `;}
 function readProfileFields(){const value=id=>document.getElementById(id).value.trim();return {username:value('profileUsername'),school:value('profileSchool'),major:value('profileMajor'),degree:value('profileDegree'),username_en:value('profileNameEn'),school_en:value('profileSchoolEn'),major_en:value('profileMajorEn')};}
 function showProfile(required=false){
@@ -80,7 +80,7 @@ function showProfile(required=false){
  app.innerHTML=`<div class="sectionHead">${required?'':'<button class="back" onclick="showHome()">← 返回</button>'}<div><h1>${required?'欢迎使用奇点':'我的资料'}</h1><div class="meta">${required?'首次登录，请先完成个人资料。':'可随时更新用户名、学校和专业。'}</div></div></div>
  <section class="panel authPanel"><form onsubmit="saveProfile(event,${required})">
  ${profileFields(userProfile)}
- <p class="meta">这些资料用于账号识别和试用数据分析，仅管理员可在后台查看。</p><button id="profileSubmit" class="primary">保存资料</button></form><div id="profileNotice" role="status" class="notice"></div></section>`;
+ <p class="meta">这些资料用于账号识别、可选词库匹配和试用分析，个人资料仅管理员可在后台查看。</p><button id="profileSubmit" class="primary">保存资料</button></form><div id="profileNotice" role="status" class="notice"></div></section>`;
 }
 function showSchoolSuggestions(query){
  const box=document.getElementById('schoolSuggestions');if(!box)return;
@@ -93,7 +93,22 @@ function chooseSchoolSuggestion(index){const choice=schoolSuggestionMatches[inde
 let majorSuggestionMatches=[];
 function showMajorSuggestions(query=''){const box=document.getElementById('majorSuggestions');if(!box)return;majorSuggestionMatches=recommendedProgrammes(document.getElementById('profileSchool').value,document.getElementById('profileDegree').value,query);box.innerHTML=majorSuggestionMatches.map((p,i)=>`<button type="button" class="suggestion" onclick="chooseMajorSuggestion(${i})"><b>${esc(p.zh)}</b><small>${esc(p.en)}</small></button>`).join('');box.hidden=!majorSuggestionMatches.length;}
 function chooseMajorSuggestion(i){const p=majorSuggestionMatches[i];if(!p)return;document.getElementById('profileMajor').value=p.zh;document.getElementById('profileMajorEn').value=p.en;document.getElementById('majorSuggestions').hidden=true;}
-function updateEducationEnglish(){const school=document.getElementById('profileSchool').value,major=document.getElementById('profileMajor').value,degree=document.getElementById('profileDegree').value;document.getElementById('profileSchoolEn').value=englishSchool(school);document.getElementById('profileMajorEn').value=englishMajor(major,school,degree);}
+function syncEducationField(source){
+ const school=document.getElementById('profileSchool'),schoolEn=document.getElementById('profileSchoolEn'),major=document.getElementById('profileMajor'),majorEn=document.getElementById('profileMajorEn'),degree=document.getElementById('profileDegree').value;
+ if(source==='school'||source==='schoolEn'){
+  const value=(source==='school'?school:schoolEn).value,found=findSchool(value);
+  if(found){school.value=found[0];schoolEn.value=englishSchool(found[0]);}
+  else if(source==='school'){schoolEn.value=englishSchool(value);} else if(school.dataset?.autoMatched==='yes'){school.value='';}
+  if(school.dataset)school.dataset.autoMatched=found?'yes':'no';
+ }
+ if(source==='major'||source==='majorEn'){
+  const value=(source==='major'?major:majorEn).value,found=findEducationMajor(value,school.value,degree);
+  if(found){major.value=found.zh;majorEn.value=found.en;}
+  else if(source==='major'){majorEn.value=englishMajor(value,school.value,degree);} else if(major.dataset?.autoMatched==='yes'){major.value='';}
+  if(major.dataset)major.dataset.autoMatched=found?'yes':'no';
+ }
+}
+function updateEducationEnglish(){const school=document.getElementById('profileSchool').value,major=document.getElementById('profileMajor').value,degree=document.getElementById('profileDegree').value;if(findSchool(school))syncEducationField('school');if(findEducationMajor(major,school,degree))syncEducationField('major');}
 function hideSchoolSuggestions(){const box=document.getElementById('schoolSuggestions');if(box)box.hidden=true;}
 async function saveProfile(event,required=false){
  event.preventDefault();const button=document.getElementById('profileSubmit');button.disabled=true;
@@ -101,7 +116,7 @@ async function saveProfile(event,required=false){
  try{
    if(userProfile)await sb('user_profiles?user_id=eq.'+session.user.id,{method:'PATCH',body:JSON.stringify(payload)});
    else await sb('user_profiles',{method:'POST',body:JSON.stringify(payload)});
-   userProfile=payload;
+   userProfile=payload;resetSharedLibraryAccount();
    if(required){app.innerHTML='<div class="empty">资料已保存，正在加载你的课程…</div>';if(await loadCloud()){resetUploadAccount(session.user.id);showHome();}else throw new Error('课程暂时无法同步');}
    else{showProfile(false);const n=document.getElementById('profileNotice');if(n)n.textContent='资料已保存';}
  }catch(e){const n=document.getElementById('profileNotice');if(n){n.textContent=e.message?.includes('duplicate')?'这个用户名已被使用，请换一个。':'保存失败：'+(e.message||'请稍后重试');n.className='notice danger'}}finally{if(button.isConnected)button.disabled=false;}
