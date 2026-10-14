@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CourseLex AI · Semester Vocabulary</title>
+<meta name="theme-color" content="#f5f2e8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/courselex-192.png">
 <style>
 :root{--bg:#f5f2e8;--ink:#22221f;--muted:#77756e;--line:#ddd8cc;--card:#fbfaf6;--dark:#232320;--red:#a95d56;--green:#327d62}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif}
@@ -26,28 +29,25 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 [hidden]{display:none!important}.authPanel{max-width:480px}.authPanel label{display:block;margin:18px 0 8px}
 .schoolPicker{position:relative}.suggestions{position:absolute;z-index:10;left:0;right:0;top:100%;max-height:230px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px #00000014;margin-top:5px;padding:6px}.suggestion{display:block;width:100%;text-align:left;border:0;background:#fff;padding:10px 11px;border-radius:8px;cursor:pointer}.suggestion:hover,.suggestion:focus{background:var(--bg)}.suggestion small{display:block;color:var(--muted);margin-top:3px}
 </style>
-<link rel="stylesheet" href="responsive.css?v=3.0">
+<link rel="stylesheet" href="responsive.css?v=3.1">
 </head>
 <body>
 <header>
   <div class="brand" onclick="showHome()" style="cursor:pointer">CourseLex AI</div>
   <div class="top" id="userNav" hidden>
+    <nav class="studyNav" aria-label="学习导航"><button class="active" onclick="navigateStudy('home',this)">课程</button><button onclick="navigateStudy('manager',this)">词库</button><button onclick="navigateStudy('unknown',this)">生词</button><button onclick="navigateStudy('known',this)">熟词</button></nav>
     <button id="syncState" class="sync compactSync off" onclick="syncNow()">未同步</button>
-    <details class="navMenu"><summary>菜单 <span aria-hidden="true">☰</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
-    <button class="linkbtn" onclick="showHome()">我的课程</button>
-    <a class="linkbtn" href="courselex-user-guide.pdf?v=3.0" target="_blank" rel="noopener">用户指南</a>
-    <button class="linkbtn" onclick="showCourses()">课程设置</button>
+    <details class="navMenu"><summary>账户 <span aria-hidden="true">⌄</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
+    <a class="linkbtn" href="courselex-user-guide.pdf?v=3.1" target="_blank" rel="noopener">用户指南</a>
     <button class="linkbtn" onclick="showProfile()">我的资料</button>
     <button class="linkbtn" onclick="logout()">退出</button>
-    <button class="linkbtn" onclick="showManager()">词库管理</button>
-    <button class="linkbtn" onclick="showBook('unknown')">生词本</button>
-    <button class="linkbtn" onclick="showBook('known')">熟词本</button>
     <a class="linkbtn" id="adminLink" href="admin.html" hidden>管理后台</a>
     </div></details>
   </div>
 </header>
 <main id="app"></main>
-<footer class="signature" style="margin:0;padding:0 0 28px">版本 3.0 · 同学试用</footer>
+<footer class="signature" style="margin:0;padding:0 0 100px"><button class="linkbtn" onclick="showInstall()">添加到桌面</button><p>版本 3.1 · 同学试用</p></footer>
+<dialog id="installDialog"><h2>添加 CourseLex 到桌面</h2><p id="installInstructions"></p><p class="meta">桌面快捷入口使用同一账号与云端进度，使用时需要联网。图标暂用 CL，正式图标稍后更新。</p><form method="dialog"><button class="secondary">知道了</button></form></dialog>
 <script src="vendor/supabase-2.57.4.js"></script>
 <script>
 const SUPABASE_URL="https://lgluwowzuwsabedbyblr.supabase.co";
@@ -98,11 +98,14 @@ async function syncNow(){
  if(epoch===accountEpoch)renderCurrent();
 }
 function countCourse(c){return words.filter(w=>w.course===c).length}
+function setStudyNav(view){const index={home:0,manager:1,unknown:2,known:3}[view];document.querySelectorAll?.('.studyNav button').forEach((b,i)=>b.classList.toggle('active',i===index));}
+function navigateStudy(view){if(view==='home')showHome();else if(view==='manager')showManager();else showBook(view);}
 function countWeek(c,w){return words.filter(x=>x.course===c&&Number(x.week)===Number(w)).length}
 function knownCount(c){return words.filter(w=>w.course===c&&progress[w.id]==="known").length}
 
 function showHome(){
  if(!session)return showAuth();
+ setStudyNav('home');
  window._view={type:"home"};
  app.innerHTML=`<section class="hero"><h1>把专业词汇<br>真正记下来。</h1><p>按课程、Week 学习。快速过词、四选一测试，并自动整理生词与熟词。</p></section>
  <button class="secondary" onclick="showCourses()" style="margin-bottom:20px">自定义课程</button>
@@ -173,6 +176,7 @@ function confirmKnown(ok){recordAnswer(ok?"known":"unknown")}
 function nextQ(){qIndex++;showQuestion()}
 
 function showManager(c=currentCourse,w=currentWeek){
+ setStudyNav('manager');
  if(!session)return showAuth();if(!Object.keys(COURSES).length)return showCourses();currentCourse=COURSES[c]?c:Object.keys(COURSES)[0];currentWeek=Math.min(Number(w)||1,weekCount(currentCourse));window._view={type:"manager",c:currentCourse,w:currentWeek};
  app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><h1>词库管理</h1><div class="meta">添加、批量导入或删除词汇</div></div></div>
  <div class="panel">
@@ -226,6 +230,7 @@ function notice(t,bad=false){const n=document.getElementById("notice");if(n){n.t
 
 function showBook(kind){
  if(!session)return showAuth();
+ setStudyNav(kind);
  window._view={type:"book",kind};const arr=words.filter(w=>progress[w.id]===kind);
  app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><h1>${kind==="known"?"熟词本":"生词本"}</h1><div class="meta">${arr.length} words</div></div></div>
  <div class="panel">${arr.length?arr.map(x=>`<div class="item"><div><b>${esc(x.en)}</b><div class="zh">${esc(x.zh)} · ${esc(courseLabel(x.course))} Week ${x.week}</div></div></div>`).join(""):`<div class="empty">暂无词汇</div>`}</div>`;
@@ -238,6 +243,7 @@ function renderCurrent(){
 <script src="upload.js?v=2.0"></script>
 <script src="own-ai.js?v=2.1"></script>
 <script src="education-catalog.js?v=3.0"></script>
-<script src="accounts.js?v=3.0"></script>
+<script src="accounts.js?v=3.1"></script>
+<script src="install.js?v=3.1"></script>
 </body>
 </html>
