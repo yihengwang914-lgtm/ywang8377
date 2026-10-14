@@ -10,7 +10,7 @@ function authNotice(text,bad=false){const el=document.getElementById('authNotice
 function showAuth(mode='login'){
  document.getElementById('userNav').hidden=true;window._view={type:'auth'};
  const signup=mode==='signup',reset=mode==='reset';
- app.innerHTML=`<section class="hero"><h1>把专业词汇<br>真正记下来。</h1><p>CourseLex AI · 每个人独立的课程、词库与学习进度。</p></section><section class="panel authPanel"><h2>${signup?'邮箱注册':reset?'重置密码':'登录 CourseLex AI'}</h2><form onsubmit="submitAuth(event,'${mode}')">
+ app.innerHTML=`<section class="hero"><h1>每一个知识点，<br>都是新的起点。</h1><p>奇点 CourseLex AI · 每个人独立的课程、词库与学习进度。</p></section><section class="panel authPanel"><h2>${signup?'邮箱注册':reset?'重置密码':'登录奇点'}</h2><form onsubmit="submitAuth(event,'${mode}')">
  <label for="authEmail">邮箱</label><input id="authEmail" type="email" autocomplete="email" required maxlength="254">
  ${reset?'':`<label for="authPassword">密码</label><input id="authPassword" type="password" autocomplete="${signup?'new-password':'current-password'}" minlength="8" required>`}
  ${signup?'<p class="meta">密码至少 8 位。填写以下资料后注册，请先验证邮箱。</p>'+profileFields():''}<br><br><button id="authSubmit" class="primary">${signup?'注册':reset?'发送重置邮件':'登录'}</button></form>
@@ -77,7 +77,7 @@ function profileFields(data=null){return ` <label for="profileUsername">用户�
 function readProfileFields(){const value=id=>document.getElementById(id).value.trim();return {username:value('profileUsername'),school:value('profileSchool'),major:value('profileMajor'),degree:value('profileDegree'),username_en:value('profileNameEn'),school_en:value('profileSchoolEn'),major_en:value('profileMajorEn')};}
 function showProfile(required=false){
  if(!session)return showAuth();window._view={type:'profile',required:Boolean(required)};
- app.innerHTML=`<div class="sectionHead">${required?'':'<button class="back" onclick="showHome()">← 返回</button>'}<div><h1>${required?'欢迎使用 CourseLex AI':'我的资料'}</h1><div class="meta">${required?'首次登录，请先完成个人资料。':'可随时更新用户名、学校和专业。'}</div></div></div>
+ app.innerHTML=`<div class="sectionHead">${required?'':'<button class="back" onclick="showHome()">← 返回</button>'}<div><h1>${required?'欢迎使用奇点':'我的资料'}</h1><div class="meta">${required?'首次登录，请先完成个人资料。':'可随时更新用户名、学校和专业。'}</div></div></div>
  <section class="panel authPanel"><form onsubmit="saveProfile(event,${required})">
  ${profileFields(userProfile)}
  <p class="meta">这些资料用于账号识别和试用数据分析，仅管理员可在后台查看。</p><button id="profileSubmit" class="primary">保存资料</button></form><div id="profileNotice" role="status" class="notice"></div></section>`;

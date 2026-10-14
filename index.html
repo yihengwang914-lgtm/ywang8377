@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CourseLex AI · Semester Vocabulary</title>
+<title>奇点 CourseLex AI · 每一个知识点，都是新的起点。</title>
+<meta name="description" content="奇点 CourseLex AI：按课程与周次整理专业词汇，学习、复习并同步个人进度。每一个知识点，都是新的起点。">
 <meta name="theme-color" content="#f5f2e8">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/courselex-192.png">
+<link rel="manifest" href="manifest.webmanifest?v=3.4">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=3.4">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=3.4">
 <style>
 :root{--bg:#f5f2e8;--ink:#22221f;--muted:#77756e;--line:#ddd8cc;--card:#fbfaf6;--dark:#232320;--red:#a95d56;--green:#327d62}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif}
@@ -29,16 +31,17 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 [hidden]{display:none!important}.authPanel{max-width:480px}.authPanel label{display:block;margin:18px 0 8px}
 .schoolPicker{position:relative}.suggestions{position:absolute;z-index:10;left:0;right:0;top:100%;max-height:230px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px #00000014;margin-top:5px;padding:6px}.suggestion{display:block;width:100%;text-align:left;border:0;background:#fff;padding:10px 11px;border-radius:8px;cursor:pointer}.suggestion:hover,.suggestion:focus{background:var(--bg)}.suggestion small{display:block;color:var(--muted);margin-top:3px}
 </style>
-<link rel="stylesheet" href="responsive.css?v=3.1">
+<link rel="stylesheet" href="responsive.css?v=3.4">
+<link rel="stylesheet" href="brand.css?v=3.4">
 </head>
 <body>
 <header>
-  <div class="brand" onclick="showHome()" style="cursor:pointer">CourseLex AI</div>
+  <a class="brand brandLockup" href="/" onclick="showHome();return false" aria-label="奇点 CourseLex AI 首页"><img src="assets/brand/courselex-mark.png" alt="" width="44" height="44"><span><strong>奇点</strong><small>CourseLex AI</small></span></a>
   <div class="top" id="userNav" hidden>
     <nav class="studyNav" aria-label="学习导航"><button class="active" onclick="navigateStudy('home',this)">课程</button><button onclick="navigateStudy('manager',this)">词库</button><button onclick="navigateStudy('unknown',this)">生词</button><button onclick="navigateStudy('known',this)">熟词</button></nav>
     <button id="syncState" class="sync compactSync off" onclick="syncNow()">未同步</button>
     <details class="navMenu"><summary>账户 <span aria-hidden="true">⌄</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
-    <a class="linkbtn" href="courselex-user-guide.pdf?v=3.2" target="_blank" rel="noopener">用户指南</a>
+    <a class="linkbtn" href="courselex-user-guide.pdf?v=3.4" target="_blank" rel="noopener">用户指南</a>
     <button class="linkbtn" onclick="showProfile()">我的资料</button>
     <button class="linkbtn" onclick="logout()">退出</button>
     <a class="linkbtn" id="adminLink" href="admin.html" hidden>管理后台</a>
@@ -46,8 +49,8 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
   </div>
 </header>
 <main id="app"></main>
-<footer class="signature" style="margin:0;padding:0 0 100px"><button class="linkbtn" onclick="showInstall()">添加到桌面</button><p>版本 3.1 · 同学试用</p></footer>
-<dialog id="installDialog"><h2>添加 CourseLex 到桌面</h2><p id="installInstructions"></p><p class="meta">桌面快捷入口使用同一账号与云端进度，使用时需要联网。图标暂用 CL，正式图标稍后更新。</p><form method="dialog"><button class="secondary">知道了</button></form></dialog>
+<footer class="signature" style="margin:0;padding:0 0 100px"><button class="linkbtn" onclick="showInstall()">添加到桌面</button><p>奇点 · CourseLex AI<br>从未知出发，向无限探索</p></footer>
+<dialog id="installDialog"><h2>添加奇点到桌面</h2><p id="installInstructions"></p><p class="meta">桌面快捷入口使用同一账号与云端进度，使用时需要联网。</p><form method="dialog"><button class="secondary">知道了</button></form></dialog>
 <script src="vendor/supabase-2.57.4.js"></script>
 <script>
 const SUPABASE_URL="https://lgluwowzuwsabedbyblr.supabase.co";
@@ -107,11 +110,11 @@ function showHome(){
  if(!session)return showAuth();
  setStudyNav('home');
  window._view={type:"home"};
- app.innerHTML=`<section class="hero"><h1>把专业词汇<br>真正记下来。</h1><p>按课程、Week 学习。快速过词、四选一测试，并自动整理生词与熟词。</p></section>
+ app.innerHTML=`<section class="hero"><h1>每一个知识点，<br>都是新的起点。</h1><p>按课程、Week 学习。快速过词、四选一测试，并自动整理生词与熟词。</p></section>
  <button class="secondary" onclick="showCourses()" style="margin-bottom:20px">自定义课程</button>
  <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${esc(n)}</div><h2>${esc(courseLabel(c))}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>
  <section class="uploadHome"><div><h2>上传课件，整理专业术语</h2><p>选择适合你的方式，整理中英文词汇并保存到个人词库。</p></div><div class="uploadActions"><button class="primary" onclick="showOwnAI()">用自己的 AI 整理</button><button class="secondary" onclick="showUpload()">API 自动整理</button></div></section>
- <div class="signature">Semester Vocabulary · @王大葱</div>`;
+ <div class="signature">蒙卦 · 启蒙 · 求知</div>`;
 }
 function showWeeks(c){
  currentCourse=c;window._view={type:"weeks",c};
@@ -241,9 +244,9 @@ function renderCurrent(){
 }
 </script>
 <script src="upload.js?v=2.0"></script>
-<script src="own-ai.js?v=2.1"></script>
+<script src="own-ai.js?v=3.4"></script>
 <script src="education-catalog.js?v=3.0"></script>
-<script src="accounts.js?v=3.2"></script>
+<script src="accounts.js?v=3.4"></script>
 <script src="install.js?v=3.1"></script>
 </body>
 </html>
