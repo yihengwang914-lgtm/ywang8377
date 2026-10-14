@@ -47,7 +47,7 @@ function startActivityTracking(){
  activityHeartbeat();if(globalThis.setInterval)activityTimer=globalThis.setInterval(activityHeartbeat,60000);
 }
 async function loadAccountProfile(){
- const rows=await sb('user_profiles?select=user_id,username,school,major,created_at,updated_at&limit=1');
+ const rows=await sb('user_profiles?select=*&limit=1');
  userProfile=rows[0]||null;
  isAdmin=await sb('rpc/is_courselex_admin',{method:'POST',body:'{}'});
  const adminLink=document.getElementById('adminLink');if(adminLink)adminLink.hidden=!isAdmin;
@@ -63,7 +63,7 @@ async function switchAccount(active){
    await loadAccountProfile();
    if(epoch!==accountEpoch)return;
    startActivityTracking();
-   if(!userProfile)return showProfile(true);
+   if(!userProfile||!userProfile.degree||!userProfile.school_en||!userProfile.major_en||!userProfile.username_en)return showProfile(true);
    if(await loadCloud()){if(epoch===accountEpoch){resetUploadAccount(active.user.id);showHome();}}
    else throw new Error('暂时无法同步');
  }catch(e){if(epoch===accountEpoch)app.innerHTML='<div class="panel"><h2>暂时无法同步</h2><p>请检查网络后重试，课程、资料与词库仍保存在云端。</p><button class="primary" onclick="switchAccount(session)">重试</button><button class="linkbtn" onclick="logout()">退出</button></div>';}
@@ -73,22 +73,28 @@ function showProfile(required=false){
  app.innerHTML=`<div class="sectionHead">${required?'':'<button class="back" onclick="showHome()">← 返回</button>'}<div><h1>${required?'欢迎使用 CourseLex AI':'我的资料'}</h1><div class="meta">${required?'首次登录，请先完成个人资料。':'可随时更新用户名、学校和专业。'}</div></div></div>
  <section class="panel authPanel"><form onsubmit="saveProfile(event,${required})">
  <label for="profileUsername">用户名</label><input id="profileUsername" autocomplete="nickname" minlength="2" maxlength="40" required value="${esc(userProfile?.username||'')}" placeholder="例如：Even Wang">
- <label for="profileSchool">学校</label><div class="schoolPicker"><input id="profileSchool" autocomplete="organization" minlength="2" maxlength="120" required value="${esc(userProfile?.school||'')}" placeholder="输入香港、英文名或简称搜索" oninput="showSchoolSuggestions(this.value)" onfocus="showSchoolSuggestions(this.value)" onblur="setTimeout(hideSchoolSuggestions,150)"><div id="schoolSuggestions" class="suggestions" hidden></div></div>
- <label for="profileMajor">专业</label><input id="profileMajor" minlength="2" maxlength="120" required value="${esc(userProfile?.major||'')}" placeholder="例如：传播与新媒体">
+ <label for="profileSchool">学校 / 联合学院</label><div class="schoolPicker"><input id="profileSchool" autocomplete="off" minlength="2" maxlength="120" required value="${esc(userProfile?.school||'')}" placeholder="任何地区学校均可填写，支持中英文搜索" oninput="showSchoolSuggestions(this.value);updateEducationEnglish()" onfocus="showSchoolSuggestions(this.value)" onblur="setTimeout(hideSchoolSuggestions,180)"><div id="schoolSuggestions" class="suggestions" hidden></div></div>
+ <label for="profileDegree">学历</label><select id="profileDegree" required onchange="updateEducationEnglish();showMajorSuggestions()"><option value="">请选择</option>${[['Bachelor','本科 · Bachelor'],['Master','硕士 · Master'],['Doctorate','博士 · Doctorate / PhD'],['Associate','专科 · Associate'],['Diploma','文凭 · Diploma'],['Other','其他 · Other']].map(([v,l])=>`<option value="${v}" ${userProfile?.degree===v?'selected':''}>${l}</option>`).join('')}</select>
+ <label for="profileMajor">专业</label><div class="schoolPicker"><input id="profileMajor" minlength="2" maxlength="120" required value="${esc(userProfile?.major||'')}" placeholder="输入专业名，或选择下方推荐" oninput="showMajorSuggestions(this.value);updateEducationEnglish()" onfocus="showMajorSuggestions(this.value)"><div id="majorSuggestions" class="suggestions" hidden></div></div><p class="meta" id="majorHint">按学校和学历匹配已核对的专业；没有推荐时可自由填写。</p>
+ <div class="englishFields"><p class="meta">后台统一使用英文。已识别的名称会自动填写，其他名称请补充学校官方英文名及专业英文名。</p><label for="profileNameEn">英文用户名 / 拼音</label><input id="profileNameEn" maxlength="80" required pattern="[ -~]+" value="${esc(userProfile?.username_en||(/^[ -~]+$/.test(userProfile?.username||'')?userProfile.username:''))}" placeholder="例如：Even Wang"><label for="profileSchoolEn">学校英文名</label><input id="profileSchoolEn" maxlength="200" required pattern="[ -~]+" value="${esc(userProfile?.school_en||'')}"><label for="profileMajorEn">专业英文名</label><input id="profileMajorEn" maxlength="200" required pattern="[ -~]+" value="${esc(userProfile?.major_en||'')}"></div>
  <p class="meta">这些资料用于账号识别和试用数据分析，仅管理员可在后台查看。</p><button id="profileSubmit" class="primary">保存资料</button></form><div id="profileNotice" role="status" class="notice"></div></section>`;
 }
 function showSchoolSuggestions(query){
  const box=document.getElementById('schoolSuggestions');if(!box)return;
  const q=String(query||'').trim().toLowerCase();
- schoolSuggestionMatches=SCHOOL_OPTIONS.filter(([name,aliases])=>!q||name.toLowerCase().includes(q)||aliases.toLowerCase().includes(q)).slice(0,8);
- box.innerHTML=schoolSuggestionMatches.map(([name,aliases],i)=>`<button type="button" class="suggestion" onmousedown="chooseSchoolSuggestion(${i})"><b>${esc(name)}</b><small>${esc(aliases)}</small></button>`).join('');
+ schoolSuggestionMatches=EDUCATION_SCHOOLS.filter(s=>!q||s.join(' ').toLowerCase().includes(q)).slice(0,8);
+ box.innerHTML=schoolSuggestionMatches.map(([name,en],i)=>`<button type="button" class="suggestion" onclick="chooseSchoolSuggestion(${i})"><b>${esc(name)}</b><small>${esc(en)}</small></button>`).join('');
  box.hidden=!schoolSuggestionMatches.length;
 }
-function chooseSchoolSuggestion(index){const choice=schoolSuggestionMatches[index];if(!choice)return;document.getElementById('profileSchool').value=choice[0];hideSchoolSuggestions();}
+function chooseSchoolSuggestion(index){const choice=schoolSuggestionMatches[index];if(!choice)return;document.getElementById('profileSchool').value=choice[0];hideSchoolSuggestions();updateEducationEnglish();showMajorSuggestions();}
+let majorSuggestionMatches=[];
+function showMajorSuggestions(query=''){const box=document.getElementById('majorSuggestions');if(!box)return;majorSuggestionMatches=recommendedProgrammes(document.getElementById('profileSchool').value,document.getElementById('profileDegree').value,query);box.innerHTML=majorSuggestionMatches.map((p,i)=>`<button type="button" class="suggestion" onclick="chooseMajorSuggestion(${i})"><b>${esc(p.zh)}</b><small>${esc(p.en)}</small></button>`).join('');box.hidden=!majorSuggestionMatches.length;}
+function chooseMajorSuggestion(i){const p=majorSuggestionMatches[i];if(!p)return;document.getElementById('profileMajor').value=p.zh;document.getElementById('profileMajorEn').value=p.en;document.getElementById('majorSuggestions').hidden=true;}
+function updateEducationEnglish(){const school=document.getElementById('profileSchool').value,major=document.getElementById('profileMajor').value,degree=document.getElementById('profileDegree').value;document.getElementById('profileSchoolEn').value=englishSchool(school);document.getElementById('profileMajorEn').value=englishMajor(major,school,degree);}
 function hideSchoolSuggestions(){const box=document.getElementById('schoolSuggestions');if(box)box.hidden=true;}
 async function saveProfile(event,required=false){
  event.preventDefault();const button=document.getElementById('profileSubmit');button.disabled=true;
- const payload={user_id:session.user.id,username:document.getElementById('profileUsername').value.trim(),school:document.getElementById('profileSchool').value.trim(),major:document.getElementById('profileMajor').value.trim(),updated_at:new Date().toISOString()};
+ const payload={user_id:session.user.id,username:document.getElementById('profileUsername').value.trim(),school:document.getElementById('profileSchool').value.trim(),major:document.getElementById('profileMajor').value.trim(),degree:document.getElementById('profileDegree').value,username_en:document.getElementById('profileNameEn').value.trim(),school_en:document.getElementById('profileSchoolEn').value.trim(),major_en:document.getElementById('profileMajorEn').value.trim(),updated_at:new Date().toISOString()};
  try{
    if(userProfile)await sb('user_profiles?user_id=eq.'+session.user.id,{method:'PATCH',body:JSON.stringify(payload)});
    else await sb('user_profiles',{method:'POST',body:JSON.stringify(payload)});

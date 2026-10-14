@@ -26,25 +26,28 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 [hidden]{display:none!important}.authPanel{max-width:480px}.authPanel label{display:block;margin:18px 0 8px}
 .schoolPicker{position:relative}.suggestions{position:absolute;z-index:10;left:0;right:0;top:100%;max-height:230px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px #00000014;margin-top:5px;padding:6px}.suggestion{display:block;width:100%;text-align:left;border:0;background:#fff;padding:10px 11px;border-radius:8px;cursor:pointer}.suggestion:hover,.suggestion:focus{background:var(--bg)}.suggestion small{display:block;color:var(--muted);margin-top:3px}
 </style>
+<link rel="stylesheet" href="responsive.css?v=3.0">
 </head>
 <body>
 <header>
   <div class="brand" onclick="showHome()" style="cursor:pointer">CourseLex AI</div>
   <div class="top" id="userNav" hidden>
+    <button id="syncState" class="sync compactSync off" onclick="syncNow()">未同步</button>
+    <details class="navMenu"><summary>菜单 <span aria-hidden="true">☰</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
+    <button class="linkbtn" onclick="showHome()">我的课程</button>
     <a class="linkbtn" href="courselex-user-guide.pdf" target="_blank" rel="noopener">用户指南</a>
     <button class="linkbtn" onclick="showCourses()">课程设置</button>
     <button class="linkbtn" onclick="showProfile()">我的资料</button>
     <button class="linkbtn" onclick="logout()">退出</button>
-    <button id="syncState" class="linkbtn sync off" onclick="syncNow()">● 未同步</button>
-    <button class="linkbtn" onclick="syncNow()">同步</button>
     <button class="linkbtn" onclick="showManager()">词库管理</button>
     <button class="linkbtn" onclick="showBook('unknown')">生词本</button>
     <button class="linkbtn" onclick="showBook('known')">熟词本</button>
     <a class="linkbtn" id="adminLink" href="admin.html" hidden>管理后台</a>
+    </div></details>
   </div>
 </header>
 <main id="app"></main>
-<footer class="signature" style="margin:0;padding:0 0 28px">版本 2.1 · 同学试用</footer>
+<footer class="signature" style="margin:0;padding:0 0 28px">版本 3.0 · 同学试用</footer>
 <script src="vendor/supabase-2.57.4.js"></script>
 <script>
 const SUPABASE_URL="https://lgluwowzuwsabedbyblr.supabase.co";
@@ -62,13 +65,13 @@ const app=document.getElementById("app");
 const syncState=document.getElementById("syncState");
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-async function recordAnswer(status){
+async function recordAnswer(status,selected=null){
  const word=current,epoch=accountEpoch;if(!word||!session||answerBusy)return;answerBusy=true;
  try{await sb('user_vocabulary?id=eq.'+word.id,{method:'PATCH',body:JSON.stringify({status,seen_count:(word.seen_count||0)+1,wrong_count:(word.wrong_count||0)+(status==='unknown'?1:0)})});
- if(epoch!==accountEpoch)return;word.status=status;word.seen_count=(word.seen_count||0)+1;if(status==='unknown')word.wrong_count=(word.wrong_count||0)+1;progress[word.id]=status;answerBusy=false;nextQ();}
+ if(epoch!==accountEpoch)return;word.status=status;word.seen_count=(word.seen_count||0)+1;if(status==='unknown')word.wrong_count=(word.wrong_count||0)+1;progress[word.id]=status;answerBusy=false;showAnswerFeedback(status,selected);}
  catch(e){if(epoch===accountEpoch){answerBusy=false;alert('学习进度未保存，请重试：'+e.message)}}
 }
-function setSync(ok){cloudOnline=ok;syncState.className="linkbtn sync "+(ok?"on":"off");syncState.textContent=ok?"● 已同步":"● 未同步"}
+function setSync(ok){cloudOnline=ok;syncState.className="sync compactSync "+(ok?"on":"off");syncState.textContent=ok?"已同步":"未同步"}
 async function sb(path,opt={}){
  const epoch=accountEpoch;const {data,error}=await authClient.auth.getSession();
  if(error||!data.session||!session||data.session.user.id!==session.user.id)throw new Error('请重新登录');
@@ -117,7 +120,7 @@ function showWeek(c,w){
  const n=countWeek(c,w);
  app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showWeeks('${c}')">← 返回</button><div><div class="code">${esc(courseLabel(c))}</div><h1>Week ${w}</h1></div></div>
  <div class="panel"><h2>${n} words</h2><p class="meta">选择学习方式</p><div class="row">
- <button class="primary" onclick="startStudy('choice')">四选一</button><button class="secondary" onclick="startStudy('recognition')">认识 / 不认识</button>
+ <button class="secondary" onclick="startStudy('choice')">四选一</button><button class="secondary" onclick="startStudy('recognition')">认识 / 不认识</button>
  <button class="secondary" onclick="showManager('${c}',${w})">管理本周词汇</button></div></div>`;
 }
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
@@ -159,7 +162,11 @@ function showQuestion(){
    app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${esc(courseLabel(currentCourse))} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="bigBtns"><button class="secondary" onclick="markUnknown()">不认识</button><button class="primary" onclick="revealKnown()">认识</button></div></div>`;
  }
 }
-function answerChoiceIndex(i){recordAnswer(window.answerOptions[i]===current.zh?"known":"unknown")}
+function answerChoiceIndex(i){if(answerBusy||window._view?.type==='feedback')return;const selected=window.answerOptions?.[i];if(selected===undefined)return;return recordAnswer(selected===current.zh?"known":"unknown",selected)}
+function showAnswerFeedback(status,selected){
+ window._view={type:'feedback'};
+ app.innerHTML=`${studyBackButton()}<div class="study feedback"><div class="code">${esc(courseLabel(currentCourse))} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><p class="feedbackResult ${status==='known'?'correct':'danger'}">${status==='known'?'答对了':'再记一次'}</p><div class="word">${esc(current.en)}</div><section class="panel"><div class="meta">正确答案</div><div class="answer">${esc(current.zh)}</div>${selected&&status==='unknown'?`<p class="meta">你的选择：${esc(selected)}</p>`:''}<p class="meta">${status==='unknown'?'已加入生词本，之后可以继续复习。':'已更新学习进度。'}</p></section><button class="primary nextAnswer" onclick="nextQ()">${qIndex+1===queue.length?'完成本轮':'下一题'}</button></div>`;
+}
 function markUnknown(){recordAnswer("unknown")}
 function revealKnown(){app.innerHTML=`${studyBackButton()}<div class="study"><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p>和你想的一样吗？</p><div class="bigBtns"><button class="secondary" onclick="confirmKnown(false)">我错了</button><button class="primary" onclick="confirmKnown(true)">我没错</button></div></div>`}
 function confirmKnown(ok){recordAnswer(ok?"known":"unknown")}
@@ -230,6 +237,7 @@ function renderCurrent(){
 </script>
 <script src="upload.js?v=2.0"></script>
 <script src="own-ai.js?v=2.1"></script>
-<script src="accounts.js?v=2.2"></script>
+<script src="education-catalog.js?v=3.0"></script>
+<script src="accounts.js?v=3.0"></script>
 </body>
 </html>
