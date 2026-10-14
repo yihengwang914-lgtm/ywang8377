@@ -2,6 +2,8 @@
 
 The historical permissive vocabulary policy described below has been removed. Anonymous and authenticated clients have no grants on the original archive. New per-user courses and words require authenticated ownership; composite course/owner foreign keys prevent tenant reassignment. Upload jobs remain server-only. The one-time private legacy migration function checks the confirmed owner address in `auth.users` and binds the archive to that account.
 
+User profiles now use owner-only RLS. Usage sessions and daily aggregates are stored in `courselex_private` with no client table grants. The authenticated heartbeat function only records the current `auth.uid()`. The administrator list also lives in the private schema and does not trust user-editable metadata; dashboard functions check that list before returning email, profile, activity, course or vocabulary statistics. Direct visits to `admin.html` do not bypass these database checks.
+
 The advisor's information-only “RLS enabled no policy” notices for the archive, private migration ledger, and server-only upload jobs reflect intentional deny-all client access. They must not be “fixed” by adding permissive policies. Foreign-key indexes were added after performance review. An empty advisor output alone is not an isolation test; the rollback-only role tests in `tests/isolation.sql` passed.
 
 # Security notes

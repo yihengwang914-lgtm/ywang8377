@@ -2,11 +2,13 @@
 
 网站：https://www.courselexai.com/
 
-邮箱注册、验证后登录、退出；每个账号独立配置课程名称、简称、数量与 1–52 周。保留四选一、认识/不认识、生词本、熟词本、手动词库管理与 AI 课件整理。学习状态同步到个人云端。
+邮箱注册、验证后登录、退出；首次登录填写用户名、学校和专业，之后可在“我的资料”修改。每个账号独立配置课程名称、简称、数量与 1–52 周。保留四选一、认识/不认识、生词本、熟词本、手动词库管理与 AI 课件整理。学习状态同步到个人云端。
+
+管理员后台：https://www.courselexai.com/admin.html 。后台只允许 `courselex_private.admin_users` 中的账号访问，显示注册、活跃、使用时长、用户资料、课程/词汇概况和免费容量；普通用户无法通过 Data API 读取他人资料或后台统计。
 
 个人旧数据保留，迁移步骤与部署配置见 [MIGRATION.md](MIGRATION.md)。同学注册需要配置 Supabase 自定义 SMTP。AI 上传保留原有上传口令，并增加会话验证与课程归属检查。
 
-浏览器部署文件：`index.html`、`accounts.js`、`upload.js`、`vendor/supabase-2.57.4.js`。数据库结构：`supabase/courselex_accounts.sql`；AI 函数：`supabase/functions/courselex-user-import/`。
+浏览器部署文件：`index.html`、`accounts.js`、`admin.html`、`admin.js`、`upload.js`、`vendor/supabase-2.57.4.js`。数据库结构：`supabase/courselex_accounts.sql`、`supabase/user_profiles_and_analytics.sql`、`supabase/admin_capacity_metrics.sql`；AI 函数：`supabase/functions/courselex-user-import/`。免费容量估算见 [CAPACITY.md](CAPACITY.md)。
 
 以下为原版本的课件处理说明，原函数保留作历史参考；当前账号版使用上述新函数。
 

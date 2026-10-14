@@ -8,8 +8,8 @@
 :root{--bg:#f5f2e8;--ink:#22221f;--muted:#77756e;--line:#ddd8cc;--card:#fbfaf6;--dark:#232320;--red:#a95d56;--green:#327d62}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif}
 header{max-width:960px;height:84px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 0;background:transparent}
-.brand{font-size:18px;font-weight:750;letter-spacing:-.2px}.top{display:flex;gap:10px;align-items:center;font-size:13px}
-button{font:inherit}.linkbtn{border:1px solid var(--line);background:rgba(255,255,255,.35);border-radius:999px;padding:9px 14px;cursor:pointer;color:var(--ink)}.sync{font-weight:500}.sync.off{color:var(--muted)}.sync.on{color:var(--muted)}.sync.off:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:7px}.sync.on:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:7px}
+.brand{font-size:18px;font-weight:750;letter-spacing:-.2px}.top{display:flex;gap:10px;align-items:center;font-size:13px;flex-wrap:wrap;justify-content:flex-end}
+button{font:inherit}.linkbtn{border:1px solid var(--line);background:rgba(255,255,255,.35);border-radius:999px;padding:9px 14px;cursor:pointer;color:var(--ink);text-decoration:none}.sync{font-weight:500}.sync.off{color:var(--muted)}.sync.on{color:var(--muted)}.sync.off:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:7px}.sync.on:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:7px}
 main{max-width:960px;margin:0 auto;padding:24px 0 70px}.hero{text-align:left;margin:8px 0 28px}.hero h1{font-size:50px;line-height:.98;letter-spacing:-2.4px;margin:0 0 14px;font-weight:850;max-width:540px}.hero p{color:var(--muted);font-size:15px;margin:0}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.course{min-height:182px;border:1px solid var(--line);border-radius:22px;background:var(--card);padding:24px 22px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;box-shadow:none;transition:.18s ease}.course:hover{transform:translateY(-2px);box-shadow:0 10px 25px #00000008}.code{font-size:13px;color:var(--muted)}.course h2{font-size:22px;margin:4px 0 0;line-height:1.05;letter-spacing:-.5px}.meta{font-size:13px;color:var(--muted)}
 .sectionHead{display:flex;align-items:center;gap:18px;margin-bottom:28px}.back{border:1px solid var(--line);border-radius:999px;background:#fff;padding:9px 13px;cursor:pointer}.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.week{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:22px;cursor:pointer}.week strong{font-size:19px}.week small{display:block;color:var(--muted);margin-top:10px}
@@ -28,19 +28,22 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 </head>
 <body>
 <header>
-  <div class="brand" onclick="showHome()" style="cursor:pointer">Semester Vocabulary</div>
+  <div class="brand" onclick="showHome()" style="cursor:pointer">CourseLex AI</div>
   <div class="top" id="userNav" hidden>
+    <a class="linkbtn" href="courselex-user-guide.pdf" target="_blank" rel="noopener">用户指南</a>
     <button class="linkbtn" onclick="showCourses()">课程设置</button>
+    <button class="linkbtn" onclick="showProfile()">我的资料</button>
     <button class="linkbtn" onclick="logout()">退出</button>
     <button id="syncState" class="linkbtn sync off" onclick="syncNow()">● 未同步</button>
     <button class="linkbtn" onclick="syncNow()">同步</button>
     <button class="linkbtn" onclick="showManager()">词库管理</button>
     <button class="linkbtn" onclick="showBook('unknown')">生词本</button>
     <button class="linkbtn" onclick="showBook('known')">熟词本</button>
+    <a class="linkbtn" id="adminLink" href="admin.html" hidden>管理后台</a>
   </div>
 </header>
 <main id="app"></main>
-<footer class="signature" style="margin:0;padding:0 0 28px">版本 2.0 · 同学试用</footer>
+<footer class="signature" style="margin:0;padding:0 0 28px">版本 2.1 · 同学试用</footer>
 <script src="vendor/supabase-2.57.4.js"></script>
 <script>
 const SUPABASE_URL="https://lgluwowzuwsabedbyblr.supabase.co";
@@ -221,11 +224,11 @@ function showBook(kind){
 }
 function renderCurrent(){
  const v=window._view||{type:"home"};
- if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else if(v.type==="upload")refreshUploadState();else if(v.type==="courses")showCourses();else if(v.type==="ownAI")showOwnAI(v.c,v.w);else showHome();
+ if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else if(v.type==="upload")refreshUploadState();else if(v.type==="courses")showCourses();else if(v.type==="ownAI")showOwnAI(v.c,v.w);else if(v.type==="profile")showProfile(v.required);else showHome();
 }
 </script>
 <script src="upload.js?v=2.0"></script>
 <script src="own-ai.js?v=2.1"></script>
-<script src="accounts.js?v=2.0"></script>
+<script src="accounts.js?v=2.1"></script>
 </body>
 </html>

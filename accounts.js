@@ -1,6 +1,7 @@
 const LEGACY_EMAIL='ywang8377-c@my.cityu.edu.hk';
 const returnUrl=location.hostname==='www.courselexai.com'||location.hostname==='courselexai.com'?'https://www.courselexai.com/':'https://yihengwang914-lgtm.github.io/ywang8377/';
 let recoveryMode=false;
+let userProfile=null,isAdmin=false,activityTimer=null,activitySession='';
 function authNotice(text,bad=false){const el=document.getElementById('authNotice');if(el){el.textContent=text;el.className='notice'+(bad?' danger':'')}}
 function showAuth(mode='login'){
  document.getElementById('userNav').hidden=true;window._view={type:'auth'};
@@ -33,12 +34,55 @@ async function logout(){
  const {error}=await authClient.auth.signOut();if(error)return alert('退出失败：'+error.message);
  if(session)await switchAccount(null);
 }
+function stopActivityTracking(){if(activityTimer&&globalThis.clearInterval)globalThis.clearInterval(activityTimer);activityTimer=null;activitySession='';}
+async function activityHeartbeat(){if(!session||!activitySession||document.visibilityState==='hidden')return;try{await sb('rpc/record_user_activity',{method:'POST',body:JSON.stringify({p_session:activitySession})})}catch(e){console.error(e)}}
+function startActivityTracking(){
+ stopActivityTracking();
+ if(!session)return;
+ activitySession=(globalThis.crypto?.randomUUID?.()||'10000000-0000-4000-8000-'+String(Date.now()).padStart(12,'0').slice(-12));
+ activityHeartbeat();if(globalThis.setInterval)activityTimer=globalThis.setInterval(activityHeartbeat,60000);
+}
+async function loadAccountProfile(){
+ const rows=await sb('user_profiles?select=user_id,username,school,major,created_at,updated_at&limit=1');
+ userProfile=rows[0]||null;
+ isAdmin=await sb('rpc/is_courselex_admin',{method:'POST',body:'{}'});
+ const adminLink=document.getElementById('adminLink');if(adminLink)adminLink.hidden=!isAdmin;
+ return userProfile;
+}
 async function switchAccount(active){
- accountEpoch++;answerBusy=false;session=active;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;currentCourse='';currentWeek=1;setSync(false);resetUploadAccount(active?.user.id||'');
+ accountEpoch++;answerBusy=false;stopActivityTracking();session=active;userProfile=null;isAdmin=false;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;currentCourse='';currentWeek=1;setSync(false);resetUploadAccount(active?.user.id||'');
  document.getElementById('userNav').hidden=!active;
+ const adminLink=document.getElementById('adminLink');if(adminLink)adminLink.hidden=true;
  if(!active)return showAuth();
  const epoch=accountEpoch;app.innerHTML='<div class="empty">正在加载你的课程…</div>';
- if(await loadCloud()){if(epoch===accountEpoch){resetUploadAccount(active.user.id);showHome();}}else if(epoch===accountEpoch){app.innerHTML='<div class="panel"><h2>暂时无法同步</h2><p>请检查网络后重试，课程与词库仍保存在云端。</p><button class="primary" onclick="switchAccount(session)">重试</button><button class="linkbtn" onclick="logout()">退出</button></div>';}
+ try{
+   await loadAccountProfile();
+   if(epoch!==accountEpoch)return;
+   startActivityTracking();
+   if(!userProfile)return showProfile(true);
+   if(await loadCloud()){if(epoch===accountEpoch){resetUploadAccount(active.user.id);showHome();}}
+   else throw new Error('暂时无法同步');
+ }catch(e){if(epoch===accountEpoch)app.innerHTML='<div class="panel"><h2>暂时无法同步</h2><p>请检查网络后重试，课程、资料与词库仍保存在云端。</p><button class="primary" onclick="switchAccount(session)">重试</button><button class="linkbtn" onclick="logout()">退出</button></div>';}
+}
+function showProfile(required=false){
+ if(!session)return showAuth();window._view={type:'profile',required:Boolean(required)};
+ app.innerHTML=`<div class="sectionHead">${required?'':'<button class="back" onclick="showHome()">← 返回</button>'}<div><h1>${required?'欢迎使用 CourseLex AI':'我的资料'}</h1><div class="meta">${required?'首次登录，请先完成个人资料。':'可随时更新用户名、学校和专业。'}</div></div></div>
+ <section class="panel authPanel"><form onsubmit="saveProfile(event,${required})">
+ <label for="profileUsername">用户名</label><input id="profileUsername" autocomplete="nickname" minlength="2" maxlength="40" required value="${esc(userProfile?.username||'')}" placeholder="例如：Even Wang">
+ <label for="profileSchool">学校</label><input id="profileSchool" autocomplete="organization" minlength="2" maxlength="120" required value="${esc(userProfile?.school||'')}" placeholder="例如：香港城市大学">
+ <label for="profileMajor">专业</label><input id="profileMajor" minlength="2" maxlength="120" required value="${esc(userProfile?.major||'')}" placeholder="例如：传播与新媒体">
+ <p class="meta">这些资料用于账号识别和试用数据分析，仅管理员可在后台查看。</p><button id="profileSubmit" class="primary">保存资料</button></form><div id="profileNotice" role="status" class="notice"></div></section>`;
+}
+async function saveProfile(event,required=false){
+ event.preventDefault();const button=document.getElementById('profileSubmit');button.disabled=true;
+ const payload={user_id:session.user.id,username:document.getElementById('profileUsername').value.trim(),school:document.getElementById('profileSchool').value.trim(),major:document.getElementById('profileMajor').value.trim(),updated_at:new Date().toISOString()};
+ try{
+   if(userProfile)await sb('user_profiles?user_id=eq.'+session.user.id,{method:'PATCH',body:JSON.stringify(payload)});
+   else await sb('user_profiles',{method:'POST',body:JSON.stringify(payload)});
+   userProfile=payload;
+   if(required){app.innerHTML='<div class="empty">资料已保存，正在加载你的课程…</div>';if(await loadCloud()){resetUploadAccount(session.user.id);showHome();}else throw new Error('课程暂时无法同步');}
+   else{showProfile(false);const n=document.getElementById('profileNotice');if(n)n.textContent='资料已保存';}
+ }catch(e){const n=document.getElementById('profileNotice');if(n){n.textContent=e.message?.includes('duplicate')?'这个用户名已被使用，请换一个。':'保存失败：'+(e.message||'请稍后重试');n.className='notice danger'}}finally{if(button.isConnected)button.disabled=false;}
 }
 function showCourses(){
  if(!session)return showAuth();window._view={type:'courses'};
