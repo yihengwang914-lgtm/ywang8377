@@ -2,6 +2,10 @@ const LEGACY_EMAIL='ywang8377-c@my.cityu.edu.hk';
 const returnUrl=location.hostname==='www.courselexai.com'||location.hostname==='courselexai.com'?'https://www.courselexai.com/':'https://yihengwang914-lgtm.github.io/ywang8377/';
 let recoveryMode=false;
 let userProfile=null,isAdmin=false,activityTimer=null,activitySession='';
+const SCHOOL_OPTIONS=[
+ ['香港城市大学','City University of Hong Kong · CityUHK · 城大'],['香港大学','The University of Hong Kong · HKU · 港大'],['香港中文大学','The Chinese University of Hong Kong · CUHK · 中大'],['香港科技大学','The Hong Kong University of Science and Technology · HKUST · 科大'],['香港理工大学','The Hong Kong Polytechnic University · PolyU · 理大'],['香港浸会大学','Hong Kong Baptist University · HKBU · 浸大'],['岭南大学','Lingnan University · LU'],['香港教育大学','The Education University of Hong Kong · EdUHK · 教大'],['香港都会大学','Hong Kong Metropolitan University · HKMU · 都大'],['香港恒生大学','The Hang Seng University of Hong Kong · HSUHK'],['香港树仁大学','Hong Kong Shue Yan University · HKSYU'],['香港珠海学院','Hong Kong Chu Hai College · HKCHC'],['香港演艺学院','The Hong Kong Academy for Performing Arts · HKAPA'],['香港高等教育科技学院','Technological and Higher Education Institute of Hong Kong · THEi']
+];
+let schoolSuggestionMatches=[];
 function authNotice(text,bad=false){const el=document.getElementById('authNotice');if(el){el.textContent=text;el.className='notice'+(bad?' danger':'')}}
 function showAuth(mode='login'){
  document.getElementById('userNav').hidden=true;window._view={type:'auth'};
@@ -69,10 +73,19 @@ function showProfile(required=false){
  app.innerHTML=`<div class="sectionHead">${required?'':'<button class="back" onclick="showHome()">← 返回</button>'}<div><h1>${required?'欢迎使用 CourseLex AI':'我的资料'}</h1><div class="meta">${required?'首次登录，请先完成个人资料。':'可随时更新用户名、学校和专业。'}</div></div></div>
  <section class="panel authPanel"><form onsubmit="saveProfile(event,${required})">
  <label for="profileUsername">用户名</label><input id="profileUsername" autocomplete="nickname" minlength="2" maxlength="40" required value="${esc(userProfile?.username||'')}" placeholder="例如：Even Wang">
- <label for="profileSchool">学校</label><input id="profileSchool" autocomplete="organization" minlength="2" maxlength="120" required value="${esc(userProfile?.school||'')}" placeholder="例如：香港城市大学">
+ <label for="profileSchool">学校</label><div class="schoolPicker"><input id="profileSchool" autocomplete="organization" minlength="2" maxlength="120" required value="${esc(userProfile?.school||'')}" placeholder="输入香港、英文名或简称搜索" oninput="showSchoolSuggestions(this.value)" onfocus="showSchoolSuggestions(this.value)" onblur="setTimeout(hideSchoolSuggestions,150)"><div id="schoolSuggestions" class="suggestions" hidden></div></div>
  <label for="profileMajor">专业</label><input id="profileMajor" minlength="2" maxlength="120" required value="${esc(userProfile?.major||'')}" placeholder="例如：传播与新媒体">
  <p class="meta">这些资料用于账号识别和试用数据分析，仅管理员可在后台查看。</p><button id="profileSubmit" class="primary">保存资料</button></form><div id="profileNotice" role="status" class="notice"></div></section>`;
 }
+function showSchoolSuggestions(query){
+ const box=document.getElementById('schoolSuggestions');if(!box)return;
+ const q=String(query||'').trim().toLowerCase();
+ schoolSuggestionMatches=SCHOOL_OPTIONS.filter(([name,aliases])=>!q||name.toLowerCase().includes(q)||aliases.toLowerCase().includes(q)).slice(0,8);
+ box.innerHTML=schoolSuggestionMatches.map(([name,aliases],i)=>`<button type="button" class="suggestion" onmousedown="chooseSchoolSuggestion(${i})"><b>${esc(name)}</b><small>${esc(aliases)}</small></button>`).join('');
+ box.hidden=!schoolSuggestionMatches.length;
+}
+function chooseSchoolSuggestion(index){const choice=schoolSuggestionMatches[index];if(!choice)return;document.getElementById('profileSchool').value=choice[0];hideSchoolSuggestions();}
+function hideSchoolSuggestions(){const box=document.getElementById('schoolSuggestions');if(box)box.hidden=true;}
 async function saveProfile(event,required=false){
  event.preventDefault();const button=document.getElementById('profileSubmit');button.disabled=true;
  const payload={user_id:session.user.id,username:document.getElementById('profileUsername').value.trim(),school:document.getElementById('profileSchool').value.trim(),major:document.getElementById('profileMajor').value.trim(),updated_at:new Date().toISOString()};
