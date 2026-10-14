@@ -125,12 +125,13 @@ function showWeek(c,w){
 }
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
 function buildDistractors(cur){
+ const distractorWords=window.dailyStudy&&typeof ownedStudyWords==='function'?ownedStudyWords():words;
  const used=new Set([cur.zh]);
  const result=[];
  const groups=[
-   words.filter(w=>w.id!==cur.id&&w.course===cur.course&&Number(w.week)===Number(cur.week)),
-   words.filter(w=>w.id!==cur.id&&w.course===cur.course&&Number(w.week)!==Number(cur.week)),
-   words.filter(w=>w.id!==cur.id&&w.course!==cur.course)
+   distractorWords.filter(w=>w.id!==cur.id&&w.course===cur.course&&Number(w.week)===Number(cur.week)),
+   distractorWords.filter(w=>w.id!==cur.id&&w.course===cur.course&&Number(w.week)!==Number(cur.week)),
+   distractorWords.filter(w=>w.id!==cur.id&&w.course!==cur.course)
  ];
  for(const group of groups){
    for(const w of shuffle(group)){

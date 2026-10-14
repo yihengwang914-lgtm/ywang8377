@@ -10,3 +10,5 @@ test('foreign batch cannot be organized or sent to AI',async()=>{const a=app({fo
 test('explicit filename week wins over AI guess; course writes use user credentials',async()=>{const a=app();const result=await (await a.handler(req({action:'organize',batch:id,files:[{index:0,week:2,preview:'COM100 Communication'}]}))).json();assert.equal(result.plan[0].week,2);assert.equal(result.plan[0].course,course);const repeated=await a.handler(req({action:'organize',batch:id,files:[]}));assert.equal(repeated.status,200);assert.equal(a.calls.filter(c=>c.url.includes('open.bigmodel.cn')).length,1)});
 
 test('course codes are read from metadata while camera and week numbering stay out',()=>{assert.equal(materialCourseCode('Week001/COM 5103 lecture'),'COM5103');assert.equal(materialCourseCode('IMG_1234 CS100 Computer Science'),'CS100');assert.equal(materialCourseCode('Week 1 introduction'),'')});
+
+test('Canvas underscore names retain course identity',()=>assert.equal(materialCourseCode('2026_COM5103_Week03.pdf'),'COM5103'));
