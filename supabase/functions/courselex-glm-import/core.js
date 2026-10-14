@@ -21,7 +21,7 @@ export function createHandler({env,fetch:fetcher=fetch}){
   if(!apiKey)throw new Failure(503,'服务器连接尚未配置。');
   const r=await fetcher(value('SUPABASE_URL')+path,{method,headers:{apikey:apiKey,'Content-Type':'application/json',Prefer:'return=representation',...(authorization?{Authorization:authorization}:apiKey.startsWith('sb_')?{}:{Authorization:'Bearer '+apiKey})},...(body!==undefined?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(15000)});
   const data=await r.json();
-  if(!r.ok){if(String(data.message).includes('USER_QUOTA'))throw new Failure(429,'每人每天最多整理 3 份课件，请明天再试。');if(String(data.message).includes('SITE_QUOTA'))throw new Failure(429,'今天的内测上传名额已用完，请明天再试。');throw new Failure(r.status===401?401:503,'无法读取或保存上传任务，请稍后重试。');}
+  if(!r.ok){if(String(data.message).includes('MATERIAL_SIZE'))throw new Failure(422,'这一包课件文字较多，请将剩余课件分成另一包上传。');if(String(data.message).includes('USER_QUOTA'))throw new Failure(429,'每人每天最多整理 3 份课件，请明天再试。');if(String(data.message).includes('SITE_QUOTA'))throw new Failure(429,'今天的内测上传名额已用完，请明天再试。');throw new Failure(r.status===401?401:503,'无法读取或保存上传任务，请稍后重试。');}
   return data;
  }
  const jobs='/rest/v1/user_courseware_jobs';
@@ -46,7 +46,15 @@ export function createHandler({env,fetch:fetcher=fetch}){
     if(!uuid(course)||!Number.isInteger(week)||week<1||week>52||!filename||!Array.isArray(parts)||parts.length<1||parts.length>32||parts.some(p=>typeof p!=='string'||!p.trim()||p.length>6000))throw new Failure(400,'课件内容或目标课程无效，请拆分过长文件。');
     await owned(course,week,authorization);
     await db(jobs+'?created_at=lt.'+encodeURIComponent(new Date(Date.now()-86400000).toISOString()),'DELETE');
-    const [job]=await db(jobs,'POST',{user_id:user.id,course,week,filename,parts});return reply({job:job.id,course,week,filename,total:parts.length},201);
+    let batchFields={};
+    if(data.batch){
+     if(!uuid(data.batch)||!Number.isInteger(data.file_index))throw new Failure(400,'资料任务无效。');
+     const [batch]=await db('/rest/v1/user_material_batches?id=eq.'+data.batch+'&user_id=eq.'+user.id);
+     const target=batch?.plan?.find(f=>f.index===data.file_index);if(!target||target.course!==course||target.week!==week)throw new Failure(403,'课件不属于当前资料任务。');
+     const existing=await db(jobs+'?batch_id=eq.'+data.batch+'&file_index=eq.'+data.file_index);if(existing.length)return reply({job:existing[0].id,course,week,filename,total:existing[0].parts.length},201);
+     batchFields={batch_id:data.batch,file_index:data.file_index};
+    }
+    const job=data.batch?await db('/rest/v1/rpc/create_material_job','POST',{p_batch:data.batch,p_user:user.id,p_index:data.file_index,p_parts:parts,p_filename:filename}):(await db(jobs,'POST',{user_id:user.id,course,week,filename,parts,...batchFields}))[0];return reply({job:job.id,course,week,filename,total:parts.length},201);
    }
    if(data.action!=='next'||!uuid(data.job))throw new Failure(400,'任务参数无效。');
    const [job]=await db(jobs+'?id=eq.'+data.job+'&user_id=eq.'+user.id+'&select=*');if(!job)throw new Failure(404,'任务不存在或不属于当前账号。');
@@ -59,8 +67,8 @@ export function createHandler({env,fetch:fetcher=fetch}){
    }
    const rows=await update(job.id,{status:'processing'},'&status=eq.ready&cursor=eq.'+job.cursor);if(!rows.length)return reply({status:'processing',done:job.cursor,total:job.parts.length});claimed=job;
    if(job.cursor<job.parts.length){
-    let r;try{r=await fetcher('https://open.bigmodel.cn/api/paas/v4/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+value('GLM_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:'glm-4.7-flash',thinking:{type:'disabled'},stream:false,max_tokens:8192,response_format:{type:'json_object'},messages:[{role:'system',content:instruction},{role:'user',content:job.parts[job.cursor]}]}),signal:AbortSignal.timeout(55000)})}catch{throw new Failure(504,'免费 AI 暂时响应较慢，可稍后继续检查。')}
-    const answer=await r.json();if(!r.ok)throw new Failure(r.status===429?429:503,r.status===429?'免费模型请求较多，请稍后继续检查。':'智谱服务暂时不可用，请稍后继续检查。');
+    let r,answer;const lease=crypto.randomUUID();if(!await db('/rest/v1/rpc/acquire_material_ai','POST',{p_model:'glm-4.7-flash',p_owner:lease}))throw new Failure(429,'莱克正在为同学整理资料，已自动排队。');try{r=await fetcher('https://open.bigmodel.cn/api/paas/v4/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+value('GLM_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:'glm-4.7-flash',thinking:{type:'disabled'},stream:false,max_tokens:8192,response_format:{type:'json_object'},messages:[{role:'system',content:instruction},{role:'user',content:job.parts[job.cursor]}]}),signal:AbortSignal.timeout(55000)});answer=await r.json()}catch{throw new Failure(504,'免费 AI 暂时响应较慢，正在等待重试。')}finally{try{await db('/rest/v1/rpc/release_material_ai','POST',{p_model:'glm-4.7-flash',p_owner:lease})}catch{}}
+    if(!r.ok){console.warn(JSON.stringify({event:'glm_request_rejected',status:r.status,code:answer.error?.code||'unknown'}));throw new Failure(r.status===429?429:503,r.status===429?'免费模型请求较多，请稍后继续检查。':'智谱服务暂时不可用，请稍后继续检查。');}
     if(answer.choices?.[0]?.finish_reason!=='stop')throw new Failure(422,'AI 结果被截断，本次尚未入库，请拆分文件。');
     let result;try{result=JSON.parse(answer.choices[0].message.content)}catch{throw new Failure(422,'AI 未返回有效词表，本次尚未入库。')}
     const terms=validateTerms(result,job.parts[job.cursor]).map(t=>({...t,source:'课件文字第 '+(job.cursor+1)+' 段'}));
@@ -68,7 +76,7 @@ export function createHandler({env,fetch:fetcher=fetch}){
     await update(job.id,{terms:combined,cursor:job.cursor+1,status:'ready'});return reply({status:'processing',done:job.cursor+1,total:job.parts.length});
    }
    const unique=new Map();for(const t of job.terms){const k=t.english.toLowerCase();if(!unique.has(k))unique.set(k,t)}const terms=[...unique.values()];
-   const counts=terms.length?await db('/rest/v1/rpc/import_user_vocabulary','POST',{p_course:job.course,p_week:job.week,p_terms:terms.map(({english,chinese})=>({english,chinese}))},authorization):{inserted:0,skipped:0};
+   const counts=terms.length?await db('/rest/v1/rpc/'+(job.batch_id?'import_material_vocabulary':'import_user_vocabulary'),'POST',{p_course:job.course,p_week:job.week,p_terms:terms.map(({english,chinese})=>({english,chinese}))},authorization):{inserted:0,skipped:0};
    const result={status:'completed',course:job.course,week:job.week,filename:job.filename,extracted:terms.length,...counts,terms,coverage_note:'已整理课件中读取到的文字；图片内文字和图表不在本次整理范围。',warnings:[]};
    // Clear temporary source text after import; keep the result so network retries never repeat AI calls.
    await update(job.id,{status:'completed',result,parts:['已清理'],terms:[]});return reply(result);

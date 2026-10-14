@@ -12,6 +12,7 @@ function setup({owner='user-a',verified=true,courseOwned=true,aiResult}={}){let 
  if(opt.method==='PATCH'){Object.assign(saved,JSON.parse(opt.body));return json([saved])}
  return json(saved&&saved.user_id===owner?[saved]:[]);
  }
+ if(url.endsWith('/rpc/acquire_material_ai')||url.endsWith('/rpc/release_material_ai'))return json(true);
  if(url.includes('open.bigmodel.cn')){aiCalls++;const body=JSON.parse(opt.body);assert.equal(body.model,'glm-4.7-flash');return json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(aiResult||{complete:true,terms:[{english:'privacy',chinese:'隐私',quote:'privacy'}]})}}]})}
  if(url.endsWith('/rpc/import_user_vocabulary')){imports++;assert.equal(opt.headers.Authorization,'Bearer user-token');return json({inserted:1,skipped:0})}
  throw Error('unexpected '+url)

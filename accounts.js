@@ -10,10 +10,10 @@ function authNotice(text,bad=false){const el=document.getElementById('authNotice
 function showAuth(mode='login'){
  document.getElementById('userNav').hidden=true;window._view={type:'auth'};
  const signup=mode==='signup',reset=mode==='reset';
- app.innerHTML=`<section class="hero"><h1>每一个知识点，<br>都是新的起点。</h1><p>奇点 CourseLex AI · 每个人独立的课程、词库与学习进度。</p></section><section class="panel authPanel"><h2>${signup?'邮箱注册':reset?'重置密码':'登录奇点'}</h2><form onsubmit="submitAuth(event,'${mode}')">
+ app.innerHTML=`<section class="hero"><h1>每一个知识点，<br>都是新的起点。</h1><p>上传 Canvas 的 ZIP 或 PDF / PPT，莱克自动整理你的课堂词汇。</p></section><section class="panel authPanel"><h2>${signup?'邮箱注册':reset?'重置密码':'登录奇点'}</h2><form onsubmit="submitAuth(event,'${mode}')">
  <label for="authEmail">邮箱</label><input id="authEmail" type="email" autocomplete="email" required maxlength="254">
  ${reset?'':`<label for="authPassword">密码</label><input id="authPassword" type="password" autocomplete="${signup?'new-password':'current-password'}" minlength="8" required>`}
- ${signup?'<p class="meta">密码至少 8 位。填写以下资料后注册，请先验证邮箱。</p>'+profileFields():''}<br><br><button id="authSubmit" class="primary">${signup?'注册':reset?'发送重置邮件':'登录'}</button></form>
+ ${signup?'<p class="meta">密码至少 8 位。验证邮箱后即可保存学习进度。</p>'+registrationProfileFields():''}<br><br><button id="authSubmit" class="primary">${signup?'注册':reset?'发送重置邮件':'登录'}</button></form>
  <div id="authNotice" role="status" class="notice"></div><div class="uploadActions"><button class="linkbtn" onclick="showAuth('${signup||reset?'login':'signup'}')">${signup||reset?'返回登录':'创建账号'}</button>${!signup&&!reset?'<button class="linkbtn" onclick="showAuth(\'reset\')">忘记密码</button>':''}</div></section>`;
 }
 async function submitAuth(event,mode){
@@ -54,7 +54,7 @@ async function loadAccountProfile(){
  return userProfile;
 }
 async function switchAccount(active){
- accountEpoch++;resetSharedLibraryAccount();answerBusy=false;stopActivityTracking();session=active;userProfile=null;isAdmin=false;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;currentCourse='';currentWeek=1;setSync(false);resetUploadAccount(active?.user.id||'');
+ accountEpoch++;document.getElementById('wordEditor')?.remove?.();resetSharedLibraryAccount();answerBusy=false;stopActivityTracking();session=active;userProfile=null;isAdmin=false;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;currentCourse='';currentWeek=1;setSync(false);resetUploadAccount(active?.user.id||'');if(typeof resetMaterialsAccount==='function')resetMaterialsAccount(active?.user.id||'');
  document.getElementById('userNav').hidden=!active;
  const adminLink=document.getElementById('adminLink');if(adminLink)adminLink.hidden=true;
  if(!active)return showAuth();
@@ -63,7 +63,7 @@ async function switchAccount(active){
    await loadAccountProfile();
    if(epoch!==accountEpoch)return;
    startActivityTracking();
-   if(!userProfile||!userProfile.degree||!userProfile.username||!userProfile.school||!userProfile.major)return showProfile(true);
+   if(!userProfile||!userProfile.username)return showProfile(true);
    if(await loadCloud()){if(epoch===accountEpoch){resetUploadAccount(active.user.id);showHome();}}
    else throw new Error('暂时无法同步');
  }catch(e){if(epoch===accountEpoch)app.innerHTML='<div class="panel"><h2>暂时无法同步</h2><p>请检查网络后重试，课程、资料与词库仍保存在云端。</p><button class="primary" onclick="switchAccount(session)">重试</button><button class="linkbtn" onclick="logout()">退出</button></div>';}
@@ -74,12 +74,12 @@ function profileFields(data=null){return ` <label for="profileUsername">用户�
  <label for="profileMajor">专业</label><div class="schoolPicker"><input id="profileMajor" minlength="2" maxlength="120" required value="${esc(data?.major||'')}" placeholder="输入专业名，或选择下方推荐" oninput="showMajorSuggestions(this.value)" onfocus="showMajorSuggestions(this.value)"><div id="majorSuggestions" class="suggestions" hidden></div></div><p class="meta" id="majorHint">按学校和学历匹配已核对的专业；没有推荐时可自由填写。</p>
 
 `;}
-function readProfileFields(){const value=id=>document.getElementById(id).value.trim();return {username:value('profileUsername'),school:value('profileSchool'),major:value('profileMajor'),degree:value('profileDegree')};}
+function readProfileFields(){const value=id=>document.getElementById(id).value.trim();return {username:value('profileUsername'),school:value('profileSchool')||'Not provided',major:value('profileMajor')||'Not provided',degree:value('profileDegree')||'Other'};}
 function showProfile(required=false){
  if(!session)return showAuth();window._view={type:'profile',required:Boolean(required)};
  app.innerHTML=`<div class="sectionHead">${required?'':'<button class="back" onclick="showHome()">← 返回</button>'}<div><h1>${required?'欢迎使用奇点':'我的资料'}</h1><div class="meta">${required?'首次登录，请先完成个人资料。':'可随时更新用户名、学校和专业。'}</div></div></div>
  <section class="panel authPanel"><form onsubmit="saveProfile(event,${required})">
- ${profileFields(userProfile)}
+ ${required?registrationProfileFields():profileFields(userProfile)}
  <p class="meta">这些资料用于账号识别、可选词库匹配和试用分析，个人资料仅管理员可在后台查看。</p><button id="profileSubmit" class="primary">保存资料</button></form><div id="profileNotice" role="status" class="notice"></div></section>`;
 }
 function showSchoolSuggestions(query){
@@ -129,9 +129,11 @@ async function migrateLegacy(){
  }catch(e){notice('迁移未完成，可安全重试：'+e.message,true)}
 }
 authClient.auth.onAuthStateChange((event,active)=>{
- if(event==='PASSWORD_RECOVERY'){recoveryMode=true;accountEpoch++;session=active;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;resetUploadAccount('');document.getElementById('userNav').hidden=true;setTimeout(showPasswordReset,0);return;}
+ if(event==='PASSWORD_RECOVERY'){recoveryMode=true;accountEpoch++;session=active;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;document.getElementById('wordEditor')?.remove?.();if(typeof resetMaterialsAccount==='function')resetMaterialsAccount('');resetUploadAccount('');document.getElementById('userNav').hidden=true;setTimeout(showPasswordReset,0);return;}
  if(recoveryMode&&event!=='SIGNED_OUT')return;
  if(event==='INITIAL_SESSION'||event==='SIGNED_OUT'||(event==='SIGNED_IN'&&active?.user.id!==session?.user.id))setTimeout(()=>switchAccount(active),0);
  else if(active)session=active;
 });
-showAuth();
+app.innerHTML='<section class="assistantHero"><h1>正在打开你的学习空间…</h1></section>';
+
+function registrationProfileFields(){const fields=profileFields();const start=fields.indexOf('<label for="profileSchool">');return fields.slice(0,start)+'<details class="optionalEducation"><summary>学校与专业（选填，可稍后补充）</summary>'+fields.slice(start).replaceAll(' required','')+'</details>'}

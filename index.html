@@ -34,15 +34,16 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 </style>
 <link rel="stylesheet" href="responsive.css?v=3.6">
 <link rel="stylesheet" href="brand.css?v=3.4">
+<link rel="stylesheet" href="assistant.css?v=4.0">
 </head>
 <body>
 <header>
   <a class="brand brandLockup" href="/" onclick="showHome();return false" aria-label="奇点 CourseLex AI 首页"><img src="assets/brand/courselex-mark.png" alt="" width="44" height="44"><span><strong>奇点</strong><small>CourseLex AI</small></span></a>
   <div class="top" id="userNav" hidden>
-    <nav class="studyNav" aria-label="学习导航"><button class="active" onclick="navigateStudy('home',this)">课程</button><button onclick="navigateStudy('manager',this)">词库</button><button onclick="navigateStudy('unknown',this)">生词</button><button onclick="navigateStudy('known',this)">熟词</button></nav>
+    <nav class="studyNav" aria-label="学习导航"><button class="active" onclick="navigateStudy('home',this)">首页</button><button onclick="navigateStudy('manager',this)">资料</button><button onclick="navigateStudy('unknown',this)">生词</button><button onclick="navigateStudy('known',this)">熟词</button></nav>
     <button id="syncState" class="sync compactSync off" onclick="syncNow()">未同步</button>
     <details class="navMenu"><summary>账户 <span aria-hidden="true">⌄</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
-    <a class="linkbtn" href="courselex-user-guide.pdf?v=3.9" target="_blank" rel="noopener">用户指南</a>
+    <a class="linkbtn" href="courselex-user-guide.pdf?v=4.0" target="_blank" rel="noopener">用户指南</a>
     <button class="linkbtn" onclick="showProfile()">我的资料</button>
     <button class="linkbtn" onclick="logout()">退出</button>
     <a class="linkbtn" id="adminLink" href="admin.html" hidden>管理后台</a>
@@ -71,8 +72,8 @@ const syncState=document.getElementById("syncState");
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 async function recordAnswer(status,selected=null){
  const word=current,epoch=accountEpoch;if(!word||!session||answerBusy)return;answerBusy=true;
- try{await sb('user_vocabulary?id=eq.'+word.id,{method:'PATCH',body:JSON.stringify({status,seen_count:(word.seen_count||0)+1,wrong_count:(word.wrong_count||0)+(status==='unknown'?1:0)})});
- if(epoch!==accountEpoch)return;word.status=status;word.seen_count=(word.seen_count||0)+1;if(status==='unknown')word.wrong_count=(word.wrong_count||0)+1;progress[word.id]=status;answerBusy=false;showAnswerFeedback(status,selected);}
+ try{const saved=await sb('rpc/answer_courselex_word',{method:'POST',body:JSON.stringify({p_word:word.id,p_known:status==='known'})});
+ if(epoch!==accountEpoch)return;Object.assign(word,saved);const cloud=words.find(w=>w.id===word.id);if(cloud)Object.assign(cloud,saved);progress[word.id]=status;answerBusy=false;showAnswerFeedback(status,selected);}
  catch(e){if(epoch===accountEpoch){answerBusy=false;alert('学习进度未保存，请重试：'+e.message)}}
 }
 function setSync(ok){cloudOnline=ok;syncState.className="sync compactSync "+(ok?"on":"off");syncState.textContent=ok?"已同步":"未同步"}
@@ -88,7 +89,7 @@ async function loadCloud(){
  if(!session)return false;const epoch=accountEpoch;
  try{
  const courses=await sb('user_courses?select=*&order=created_at.asc');const loaded=[];
- for(let offset=0;;offset+=1000){const batch=await sb('user_vocabulary?select=id,course:course_id,week,en:english,zh:chinese,type:word_type,status,seen_count,wrong_count,legacy_id&order=id.asc&limit=1000&offset='+offset);loaded.push(...batch);if(batch.length<1000)break;}
+ for(let offset=0;;offset+=1000){const batch=await sb('user_vocabulary?select=id,course:course_id,week,en:english,zh:chinese,type:word_type,status,seen_count,wrong_count,last_review_at,next_review_at,review_streak,legacy_id&order=id.asc&limit=1000&offset='+offset);loaded.push(...batch);if(batch.length<1000)break;}
  if(epoch!==accountEpoch)return false;
  courseRows=courses;COURSES=Object.fromEntries(courses.filter(c=>!c.archived).map(c=>[c.id,c.name]));
  words=loaded.filter(w=>Object.hasOwn(COURSES,w.course));progress=Object.fromEntries(words.map(w=>[w.id,w.status]));
@@ -103,22 +104,12 @@ async function syncNow(){
 }
 function countCourse(c){return words.filter(w=>w.course===c).length}
 function setStudyNav(view){const index={home:0,manager:1,unknown:2,known:3}[view];document.querySelectorAll?.('.studyNav button').forEach((b,i)=>b.classList.toggle('active',i===index));}
-function navigateStudy(view){if(view==='home')showHome();else if(view==='manager')showManager();else showBook(view);}
+function navigateStudy(view){if(view==='home')showHome();else if(view==='manager')showMaterialsLibrary();else showBook(view);}
 function countWeek(c,w){return words.filter(x=>x.course===c&&Number(x.week)===Number(w)).length}
 function knownCount(c){return words.filter(w=>w.course===c&&progress[w.id]==="known").length}
 
-function showHome(){
- if(!session)return showAuth();
- setStudyNav('home');
- window._view={type:"home"};
- app.innerHTML=`<section class="hero"><h1>每一个知识点，<br>都是新的起点。</h1><p>按课程、Week 学习。快速过词、四选一测试，并自动整理生词与熟词。</p></section>
- <button class="secondary" onclick="showCourses()" style="margin-bottom:20px">自定义课程</button>
- <div id="sharedLibrarySlot"></div><div id="sharedLibraryNotice" class="notice" role="status"></div>
- <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${esc(n)}</div><h2>${esc(courseLabel(c))}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>
- <section class="uploadHome"><div><h2>上传课件，整理专业术语</h2><p>选择适合你的方式，整理中英文词汇并保存到个人词库。</p></div><div class="uploadActions"><button class="primary" onclick="showOwnAI()">用自己的 AI 整理</button><button class="secondary" onclick="showUpload()">上传课件自动整理</button></div></section>
- `;
- renderSharedLibraryOffer();
-}
+function showHome(){return showAssistant()}
+
 function showWeeks(c){
  currentCourse=c;window._view={type:"weeks",c};
  app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><div><div class="code">${esc(courseLabel(c))}</div><h1>${esc(COURSES[c])}</h1></div></div>
@@ -150,21 +141,19 @@ function buildDistractors(cur){
  }
  return result;
 }
-function studyBackButton(){return `<div class="sectionHead"><button class="back" onclick="showWeek(currentCourse,currentWeek)">← 返回上一页</button></div>`}
-function startStudy(mode){
+function studyBackButton(){if(window.dailyStudy)return `<div class="sectionHead"><button class="back" onclick="showHome()">← 回到首页</button></div>`;return `<div class="sectionHead"><button class="back" onclick="showWeek(currentCourse,currentWeek)">← 返回上一页</button></div>`}
+function startStudy(mode){window.dailyStudy=false;
  currentMode=mode;queue=shuffle(words.filter(x=>x.course===currentCourse&&Number(x.week)===Number(currentWeek)));qIndex=0;
  if(!queue.length){app.innerHTML=`${studyBackButton()}<div class="empty">本周还没有词汇。<br><br><button class="secondary" onclick="showManager('${currentCourse}',${currentWeek})">去导入</button></div>`;return}
  showQuestion();
 }
-function showQuestion(){
+function showQuestion(){document.body?.classList.remove('assistantMode');
  current=queue[qIndex];
- if(!current){showWeek(currentCourse,currentWeek);return}
+ if(!current){if(window.dailyStudy){app.innerHTML=`<section class="study"><h1>这一轮，完成了。</h1><p>学过 ${queue.length} 个词，已根据答题情况安排下次复习。</p><button class="primary" onclick="showHome()">回到首页</button></section>`;window._view={type:'studyComplete'};return}showWeek(currentCourse,currentWeek);return}if(window.dailyStudy){currentCourse=current.course;currentWeek=current.week;}
  if(currentMode==="choice"){
    const distractors=buildDistractors(current);
-   if(distractors.length<3){
-     app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${esc(courseLabel(currentCourse))} · Week ${currentWeek}</div><div class="word">${esc(current.en)}</div><div class="answer">${esc(current.zh)}</div><p class="meta">词库中不同中文释义不足 4 个，暂时无法生成有效四选一。</p><br><button class="secondary" onclick="nextQ()">下一个</button></div>`;
-     return;
-   }
+   if(distractors.length<3){currentMode='recognition';return showQuestion();}
+
    let opts=shuffle([current.zh,...distractors]);window.answerOptions=opts;
    app.innerHTML=`${studyBackButton()}<div class="study"><div class="code">${esc(courseLabel(currentCourse))} · Week ${currentWeek} · ${qIndex+1}/${queue.length}</div><div class="word">${esc(current.en)}</div><div class="choices">${opts.map(o=>`<button class="choice" onclick="answerChoiceIndex(${opts.indexOf(o)})">${esc(o)}</button>`).join("")}</div></div>`;
  }else{
@@ -199,7 +188,7 @@ function showManager(c=currentCourse,w=currentWeek){
 function renderList(){
  const el=document.getElementById("wordList");if(!el)return;
  const arr=words.filter(x=>x.course===currentCourse&&Number(x.week)===Number(currentWeek));
- el.innerHTML=arr.length?arr.map(x=>`<div class="item"><div><b>${esc(x.en)}</b><div class="zh">${esc(x.zh)}</div></div><button class="linkbtn danger" onclick="deleteWord(${Number(x.id)})">删除</button></div>`).join(""):`<div class="empty">本周还没有词汇</div>`;
+ el.innerHTML=arr.length?arr.map(x=>`<div class="item"><div><b>${esc(x.en)}</b><div class="zh">${esc(x.zh)}</div></div><div><button class="linkbtn" onclick="editWord(${Number(x.id)})">编辑</button><button class="linkbtn danger" onclick="deleteWord(${Number(x.id)})">删除</button></div></div>`).join(""):`<div class="empty">本周还没有词汇</div>`;
 }
 async function addOne(){
  const en=document.getElementById("en").value.trim(),zh=document.getElementById("zh").value.trim();if(!en||!zh)return notice("请输入英文和中文",true);
@@ -243,15 +232,16 @@ function showBook(kind){
 }
 function renderCurrent(){
  const v=window._view||{type:"home"};
- if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else if(v.type==="upload")refreshUploadState();else if(v.type==="courses")showCourses();else if(v.type==="ownAI")showOwnAI(v.c,v.w);else if(v.type==="profile")showProfile(v.required);else showHome();
+ if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else if(v.type==="materials")showMaterialsLibrary();else if(v.type==="upload")refreshUploadState();else if(v.type==="courses")showCourses();else if(v.type==="ownAI")showOwnAI(v.c,v.w);else if(v.type==="profile")showProfile(v.required);else showHome();
 }
 </script>
-<script src="courseware-reader.js?v=3.9"></script>
-<script src="upload.js?v=3.9"></script>
+<script src="courseware-reader.js?v=4.0"></script>
+<script src="upload.js?v=4.0"></script>
+<script src="materials.js?v=4.0"></script>
 <script src="own-ai.js?v=3.9"></script>
 <script src="education-catalog.js?v=3.8"></script>
 <script src="shared-library.js?v=3.6"></script>
-<script src="accounts.js?v=3.8"></script>
+<script src="accounts.js?v=4.0"></script>
 <script src="install.js?v=3.1"></script>
 </body>
 </html>
