@@ -19,6 +19,7 @@ main{max-width:960px;margin:0 auto;padding:24px 0 70px}.hero{text-align:left;mar
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.course{min-height:182px;border:1px solid var(--line);border-radius:22px;background:var(--card);padding:24px 22px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;box-shadow:none;transition:.18s ease}.course:hover{transform:translateY(-2px);box-shadow:0 10px 25px #00000008}.code{font-size:13px;color:var(--muted)}.course h2{font-size:22px;margin:4px 0 0;line-height:1.05;letter-spacing:-.5px}.meta{font-size:13px;color:var(--muted)}
 .sectionHead{display:flex;align-items:center;gap:18px;margin-bottom:28px}.back{border:1px solid var(--line);border-radius:999px;background:#fff;padding:9px 13px;cursor:pointer}.weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.week{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:22px;cursor:pointer}.week strong{font-size:19px}.week small{display:block;color:var(--muted);margin-top:10px}
 .panel{max-width:880px;margin:0 auto;border:1px solid var(--line);border-radius:22px;background:var(--card);padding:28px}.row{display:flex;gap:12px;flex-wrap:wrap}.row>*{flex:1}
+.uploadConsent{display:flex;align-items:flex-start;gap:10px}.uploadConsent input{width:auto;flex:none;margin-top:5px}.back{white-space:nowrap}
 input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:14px inherit}textarea{min-height:180px;resize:vertical}
 .primary{background:var(--dark);color:#fff;border:0;border-radius:12px;padding:12px 20px;cursor:pointer}.secondary{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 18px;cursor:pointer}
 .notice{margin-top:14px;font-size:13px;color:var(--green)}.danger{color:var(--red)}
@@ -41,7 +42,7 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
     <nav class="studyNav" aria-label="学习导航"><button class="active" onclick="navigateStudy('home',this)">课程</button><button onclick="navigateStudy('manager',this)">词库</button><button onclick="navigateStudy('unknown',this)">生词</button><button onclick="navigateStudy('known',this)">熟词</button></nav>
     <button id="syncState" class="sync compactSync off" onclick="syncNow()">未同步</button>
     <details class="navMenu"><summary>账户 <span aria-hidden="true">⌄</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
-    <a class="linkbtn" href="courselex-user-guide.pdf?v=3.7" target="_blank" rel="noopener">用户指南</a>
+    <a class="linkbtn" href="courselex-user-guide.pdf?v=3.9" target="_blank" rel="noopener">用户指南</a>
     <button class="linkbtn" onclick="showProfile()">我的资料</button>
     <button class="linkbtn" onclick="logout()">退出</button>
     <a class="linkbtn" id="adminLink" href="admin.html" hidden>管理后台</a>
@@ -114,7 +115,7 @@ function showHome(){
  <button class="secondary" onclick="showCourses()" style="margin-bottom:20px">自定义课程</button>
  <div id="sharedLibrarySlot"></div><div id="sharedLibraryNotice" class="notice" role="status"></div>
  <section class="grid">${Object.entries(COURSES).map(([c,n])=>`<article class="course" onclick="showWeeks('${c}')"><div><div class="code">${esc(n)}</div><h2>${esc(courseLabel(c))}</h2></div><div class="meta">${countCourse(c)?countCourse(c)+" 个词汇已录入":"等待录入词汇"} · 熟词 ${knownCount(c)}</div></article>`).join("")}</section>
- <section class="uploadHome"><div><h2>上传课件，整理专业术语</h2><p>选择适合你的方式，整理中英文词汇并保存到个人词库。</p></div><div class="uploadActions"><button class="primary" onclick="showOwnAI()">用自己的 AI 整理</button><button class="secondary" onclick="showUpload()">API 自动整理</button></div></section>
+ <section class="uploadHome"><div><h2>上传课件，整理专业术语</h2><p>选择适合你的方式，整理中英文词汇并保存到个人词库。</p></div><div class="uploadActions"><button class="primary" onclick="showOwnAI()">用自己的 AI 整理</button><button class="secondary" onclick="showUpload()">上传课件自动整理</button></div></section>
  `;
  renderSharedLibraryOffer();
 }
@@ -245,8 +246,9 @@ function renderCurrent(){
  if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else if(v.type==="upload")refreshUploadState();else if(v.type==="courses")showCourses();else if(v.type==="ownAI")showOwnAI(v.c,v.w);else if(v.type==="profile")showProfile(v.required);else showHome();
 }
 </script>
-<script src="upload.js?v=2.0"></script>
-<script src="own-ai.js?v=3.4"></script>
+<script src="courseware-reader.js?v=3.9"></script>
+<script src="upload.js?v=3.9"></script>
+<script src="own-ai.js?v=3.9"></script>
 <script src="education-catalog.js?v=3.8"></script>
 <script src="shared-library.js?v=3.6"></script>
 <script src="accounts.js?v=3.8"></script>
