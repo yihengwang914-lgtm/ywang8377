@@ -34,7 +34,7 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 </style>
 <link rel="stylesheet" href="responsive.css?v=3.6">
 <link rel="stylesheet" href="brand.css?v=3.4">
-<link rel="stylesheet" href="assistant.css?v=4.0">
+<link rel="stylesheet" href="assistant.css?v=4.1">
 </head>
 <body>
 <header>
@@ -43,7 +43,7 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
     <nav class="studyNav" aria-label="学习导航"><button class="active" onclick="navigateStudy('home',this)">首页</button><button onclick="navigateStudy('manager',this)">资料</button><button onclick="navigateStudy('unknown',this)">生词</button><button onclick="navigateStudy('known',this)">熟词</button></nav>
     <button id="syncState" class="sync compactSync off" onclick="syncNow()">未同步</button>
     <details class="navMenu"><summary>账户 <span aria-hidden="true">⌄</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
-    <a class="linkbtn" href="courselex-user-guide.pdf?v=4.0" target="_blank" rel="noopener">用户指南</a>
+    <a class="linkbtn" href="courselex-user-guide.pdf?v=4.1" target="_blank" rel="noopener">用户指南</a>
     <button class="linkbtn" onclick="showProfile()">我的资料</button>
     <button class="linkbtn" onclick="logout()">退出</button>
     <a class="linkbtn" id="adminLink" href="admin.html" hidden>管理后台</a>
@@ -236,13 +236,13 @@ function renderCurrent(){
  if(v.type==="home")showHome();else if(v.type==="weeks")showWeeks(v.c);else if(v.type==="week")showWeek(v.c,v.w);else if(v.type==="manager")showManager(v.c,v.w);else if(v.type==="book")showBook(v.kind);else if(v.type==="materials")showMaterialsLibrary();else if(v.type==="upload")refreshUploadState();else if(v.type==="courses")showCourses();else if(v.type==="ownAI")showOwnAI(v.c,v.w);else if(v.type==="profile")showProfile(v.required);else showHome();
 }
 </script>
-<script src="courseware-reader.js?v=4.0"></script>
-<script src="upload.js?v=4.0"></script>
-<script src="materials.js?v=4.0"></script>
+<script src="courseware-reader.js?v=4.1"></script>
+<script src="upload.js?v=4.1"></script>
+<script src="materials.js?v=4.1"></script>
 <script src="own-ai.js?v=3.9"></script>
 <script src="education-catalog.js?v=3.8"></script>
 <script src="shared-library.js?v=3.6"></script>
-<script src="accounts.js?v=4.0"></script>
+<script src="accounts.js?v=4.1"></script>
 <script src="install.js?v=3.1"></script>
 </body>
 </html>

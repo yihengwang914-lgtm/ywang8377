@@ -1,3 +1,4 @@
+import {callModel,ModelError,modelName} from './model.js';
 const origins=new Set(['https://www.courselexai.com','https://courselexai.com','https://yihengwang914-lgtm.github.io']);
 const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(v);
 class Failure extends Error{constructor(status,message){super(message);this.status=status}}
@@ -13,7 +14,7 @@ export function validateTerms(result,text){
   return {english,chinese,quote};
  });
 }
-export function createHandler({env,fetch:fetcher=fetch}){
+export function createHandler({env,fetch:fetcher=fetch,paid=false}){
  const value=n=>env(n)||'';
  function key(name,fallback){try{return JSON.parse(value(name)).default||value(fallback)}catch{return value(fallback)}}
  async function db(path,method='GET',body,authorization){
@@ -33,7 +34,7 @@ export function createHandler({env,fetch:fetcher=fetch}){
   try{
    if(origin&&!origins.has(origin))throw new Failure(403,'请从奇点网站使用上传功能。');
    if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
-   if(req.method==='GET')return reply({configured:Boolean(value('GLM_API_KEY')),provider:'智谱 GLM',model:'glm-4.7-flash',daily_limit:3,token_required:false});
+   if(req.method==='GET')return reply({configured:Boolean(value('GLM_API_KEY')),provider:'智谱 GLM',model:modelName(false,paid),vision_model:modelName(true,paid),paid_trial:paid,daily_limit:3,token_required:false});
    if(req.method!=='POST')throw new Failure(405,'请求方式无效。');
    if(!value('GLM_API_KEY'))throw new Failure(503,'自动整理服务尚未启用。');
    const authorization=req.headers.get('authorization')||'';if(!authorization.startsWith('Bearer '))throw new Failure(401,'请先登录。');
@@ -67,8 +68,7 @@ export function createHandler({env,fetch:fetcher=fetch}){
    }
    const rows=await update(job.id,{status:'processing'},'&status=eq.ready&cursor=eq.'+job.cursor);if(!rows.length)return reply({status:'processing',done:job.cursor,total:job.parts.length});claimed=job;
    if(job.cursor<job.parts.length){
-    let r,answer;const lease=crypto.randomUUID();if(!await db('/rest/v1/rpc/acquire_material_ai','POST',{p_model:'glm-4.7-flash',p_owner:lease}))throw new Failure(429,'莱克正在为同学整理资料，已自动排队。');try{r=await fetcher('https://open.bigmodel.cn/api/paas/v4/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+value('GLM_API_KEY'),'Content-Type':'application/json'},body:JSON.stringify({model:'glm-4.7-flash',thinking:{type:'disabled'},stream:false,max_tokens:8192,response_format:{type:'json_object'},messages:[{role:'system',content:instruction},{role:'user',content:job.parts[job.cursor]}]}),signal:AbortSignal.timeout(55000)});answer=await r.json()}catch{throw new Failure(504,'免费 AI 暂时响应较慢，正在等待重试。')}finally{try{await db('/rest/v1/rpc/release_material_ai','POST',{p_model:'glm-4.7-flash',p_owner:lease})}catch{}}
-    if(!r.ok){console.warn(JSON.stringify({event:'glm_request_rejected',status:r.status,code:answer.error?.code||'unknown'}));throw new Failure(r.status===429?429:503,r.status===429?'免费模型请求较多，请稍后继续检查。':'智谱服务暂时不可用，请稍后继续检查。');}
+    const answer=await callModel({db,fetcher,key:value('GLM_API_KEY'),messages:[{role:'system',content:instruction},{role:'user',content:job.parts[job.cursor]}],user:user.id,paid});
     async function splitCurrentPart(){const text=job.parts[job.cursor];if(text.length<1400||job.parts.length>=64)return false;const middle=Math.floor(text.length/2);const boundary=Math.max(text.lastIndexOf(' ',middle),text.lastIndexOf('\n',middle));const end=boundary>middle/2?boundary:middle;const parts=[...job.parts.slice(0,job.cursor),text.slice(0,Math.min(text.length,end+120)),text.slice(Math.max(0,end-120)),...job.parts.slice(job.cursor+1)];await update(job.id,{parts,status:'ready'});return parts.length;}
     if(answer.choices?.[0]?.finish_reason==='length'){const total=await splitCurrentPart();if(total)return reply({status:'processing',done:job.cursor,total,message:'内容较密，已自动拆成小段继续整理。'});}
     if(answer.choices?.[0]?.finish_reason!=='stop')throw new Failure(422,'AI 结果被截断，本次尚未入库，请拆分文件。');
@@ -76,13 +76,13 @@ export function createHandler({env,fetch:fetcher=fetch}){
     if(result.complete===false||Array.isArray(result.terms)&&result.terms.length>200){const total=await splitCurrentPart();if(total)return reply({status:'processing',done:job.cursor,total,message:'内容较密，已自动拆成小段继续整理。'});}
     const terms=validateTerms(result,job.parts[job.cursor]).map(t=>({...t,source:'课件文字第 '+(job.cursor+1)+' 段'}));
     const combined=[...job.terms,...terms];if(combined.length>1500)throw new Failure(422,'词汇超过单次 1500 个上限，请拆分文件。');
-    await update(job.id,{terms:combined,cursor:job.cursor+1,status:'ready'});return reply({status:'processing',done:job.cursor+1,total:job.parts.length});
+    await update(job.id,{terms:combined,cursor:job.cursor+1,status:'ready'});return reply({status:'processing',done:job.cursor+1,total:job.parts.length,poll_after_ms:paid?100:2500});
    }
    const unique=new Map();for(const t of job.terms){const k=t.english.toLowerCase();if(!unique.has(k))unique.set(k,t)}const terms=[...unique.values()];
    const counts=terms.length?await db('/rest/v1/rpc/'+(job.batch_id?'import_material_vocabulary':'import_user_vocabulary'),'POST',{p_course:job.course,p_week:job.week,p_terms:terms.map(({english,chinese})=>({english,chinese}))},authorization):{inserted:0,skipped:0};
    const result={status:'completed',course:job.course,week:job.week,filename:job.filename,extracted:terms.length,...counts,terms,coverage_note:'已整理课件中读取到的文字；图片内文字和图表不在本次整理范围。',warnings:[]};
    // Clear temporary source text after import; keep the result so network retries never repeat AI calls.
    await update(job.id,{status:'completed',result,parts:['已清理'],terms:[]});return reply(result);
-  }catch(e){if(claimed)try{await update(claimed.id,{status:[429,503,504].includes(e.status)?'ready':'failed',error_message:e instanceof Failure?e.message:'整理失败'})}catch{}return reply({error:e instanceof Failure?e.message:'自动整理暂时不可用，请稍后重试。'},e instanceof Failure?e.status:500)}
+  }catch(e){if(claimed)try{await update(claimed.id,{status:[429,503,504].includes(e.status)?'ready':'failed',error_message:e instanceof Failure||e instanceof ModelError?e.message:'整理失败'})}catch{}return reply({error:e instanceof Failure||e instanceof ModelError?e.message:'自动整理暂时不可用，请稍后重试。',retryable:e.retryable!==false},e instanceof Failure||e instanceof ModelError?e.status:500)}
  };
 }

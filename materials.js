@@ -8,7 +8,7 @@ function showAssistant(){
  app.innerHTML=`<section class="assistantHero"><img src="assets/brand/courselex-mark.png" width="52" height="52" alt=""><p class="eyebrow">莱克 Lex · 你的课件学习助手</p><h1>${ownedStudyWords().length?'今天，学会一点新知识。':'把课件给我，\n下一步直接背词。'}</h1><p>单个课件、多个文件、Canvas 压缩包都可以。<br>自动整理，只学你自己课堂里的词。</p></section>
  ${ownedStudyWords().length?`<div class="dailyActions"><button class="primary" onclick="startDailyStudy()">${todayCount?'开始今天的 '+todayCount+' 词':'今天的任务已完成'}</button><button class="secondary" onclick="startDailyStudy(true)">复习生词 · ${ownedStudyWords().filter(w=>w.status==='unknown').length}</button></div>`:''}
  <section class="assistantBox" id="materialDrop"><div class="assistantBubble">${materialMessage?esc(materialMessage):active?'上次的资料还没整理完，可以从断点继续。':words.length?'想加新课件？直接放进来，我会帮你接着整理。':'把 Canvas 下载的 ZIP 直接放进来，不需要逐个解压、建课程或选 Week。'}</div>
- <form onsubmit="submitMaterials(event)"><div id="materialAttachments" class="materialAttachments">${materialSelection.map(f=>`<span>${esc(f.name)}</span>`).join('')}</div><textarea id="materialPrompt" rows="2" placeholder="拖入课件，或告诉莱克你想学什么…" aria-label="告诉莱克你的学习需求"></textarea><div class="composerActions"><label class="attachButton">＋ 添加课件<input type="file" multiple accept=".zip,.pdf,.ppt,.pptx,.docx,.txt,image/png,image/jpeg,image/webp" onchange="selectMaterials(this.files)"></label><button class="primary" id="materialSend" type="submit" ${materialBusy?'disabled':''}>${materialBusy?'正在整理…':materialSelection.length?'同意并整理':'发送'}</button></div><p class="dataNote">整理时，读取到的课件内容由智谱免费模型处理，只保存到你的账号。</p></form>
+ <form onsubmit="submitMaterials(event)"><div id="materialAttachments" class="materialAttachments">${materialSelection.map(f=>`<span>${esc(f.name)}</span>`).join('')}</div><textarea id="materialPrompt" rows="2" placeholder="拖入课件，或告诉莱克你想学什么…" aria-label="告诉莱克你的学习需求"></textarea><div class="composerActions"><label class="attachButton">＋ 添加课件<input type="file" multiple accept=".zip,.pdf,.ppt,.pptx,.docx,.txt,image/png,image/jpeg,image/webp" onchange="selectMaterials(this.files)"></label><button class="primary" id="materialSend" type="submit" ${materialBusy?'disabled':''}>${materialBusy?'正在整理…':materialSelection.length?'同意并整理':'发送'}</button></div><p class="dataNote">整理时，读取到的课件内容由智谱 AI 处理，只保存到你的账号。</p></form>
  <div id="materialProgress" aria-live="polite"></div></section><div class="assistantUtilities"><button class="linkbtn" onclick="showMaterialsLibrary()">我的学习资料${words.length?' · '+words.length+' 词':''}</button><button class="linkbtn" onclick="showQuickWordImport()">已有词表？直接导入</button><button class="linkbtn" onclick="showMaterialsHelp()">如何从 Canvas 下载？</button></div>`;
  if(active&&!materialBusy&&!materialAutoResume){materialAutoResume=true;setTimeout(()=>{if(session?.user.id===materialState?.uid&&window._view?.type==='home')continueMaterials()},500)}
  const drop=document.getElementById('materialDrop');drop.ondragover=e=>{e.preventDefault();drop.classList.add('dragging')};drop.ondragleave=()=>drop.classList.remove('dragging');drop.ondrop=e=>{e.preventDefault();drop.classList.remove('dragging');selectMaterials(e.dataTransfer.files)};renderMaterialProgress();
@@ -22,7 +22,7 @@ function renderMaterialProgress(){
  else if(words.length&&materialBusy&&!document.querySelector('.dailyActions'))el.insertAdjacentHTML('beforeend','<button class="primary" onclick="startDailyStudy()">先背已经整理好的词</button>');
 }
 async function submitMaterials(event){
- event.preventDefault();if(materialBusy)return;const hint=document.getElementById('materialPrompt').value.trim();if(!materialSelection.length){if(/[|\t]/.test(hint)){try{materialDraftTerms=parseOwnTerms(hint);materialStatus('已识别 '+materialDraftTerms.length+' 个词。直接导入，不调用 AI。');document.getElementById('materialProgress').innerHTML='<button class="primary" onclick="importQuickWords()">确认导入词表</button>';return}catch(e){return materialStatus(e.message)}}if(/生词|错词/.test(hint))return startDailyStudy(true);if(/背|学|复习|开始/.test(hint))return startDailyStudy();if(/资料|课程|词库/.test(hint))return showMaterialsLibrary();return materialStatus('你可以直接上传课件或 ZIP，也可以说“开始背词”或“复习生词”。')}
+ event.preventDefault();if(materialBusy)return;const hint=document.getElementById('materialPrompt').value.trim();if(!materialSelection.length){if(/[|\t]/.test(hint)){try{materialDraftTerms=parseOwnTerms(hint);materialStatus('已识别 '+materialDraftTerms.length+' 个词。直接导入，不调用 AI。');document.getElementById('materialProgress').innerHTML='<button class="primary" onclick="importQuickWords()">确认导入词表</button>';return}catch(e){return materialStatus(e.message)}}if(/生词|错词|背|学|复习|开始|\d{3,5}/.test(hint))return startStudyRequest(hint);if(/资料|课程|词库/.test(hint))return showMaterialsLibrary();return materialStatus('你可以直接上传课件或 ZIP，也可以说“开始背词”或“复习生词”。')}
  if(materialState&&materialState.stage!=='finished'){materialStatus('先点“继续整理”完成上一批资料，或在进度下方结束这一批，再上传新的课件。');return}
  const epoch=accountEpoch;materialBusy=true;materialStatus('正在打开资料包，检查文件和重复内容…');
  try{const {files,ignored,duplicates}=await unpackMaterials(materialSelection);if(epoch!==accountEpoch)return;const started=await materialRequest({action:'start',files:files.map(f=>({name:f.path,size:f.file.size}))});if(epoch!==accountEpoch)return;materialState={uid:session.user.id,batch:started.batch,started:Date.now(),stage:'reading',files,ignored,duplicates,hint};materialSelection=[];await saveMaterialState();materialBusy=false;await continueMaterials()}catch(e){if(epoch!==accountEpoch)return;materialBusy=false;materialStatus(e.message);showAssistant()}
@@ -46,7 +46,7 @@ async function continueMaterials(){
    if(epoch!==accountEpoch)return;if(file.error||file.result||!file.plan)continue;file.status='正在生成词库';materialStatus('整理 '+(index+1)+' / '+state.files.length+'：'+file.path);
    try{
     if(!file.job){const prepared=await materialRequest({action:'prepare',course:file.plan.course,week:file.plan.week,filename:file.path.split('/').pop(),parts:splitCoursewareText(file.text),batch:state.batch,file_index:index});file.job=prepared.job;await saveMaterialState()}
-    for(let attempt=0;attempt<160;attempt++){if(epoch!==accountEpoch)return;const r=await materialRequest({action:'next',job:file.job});if(r.status==='completed'){file.result=r;file.text='';file.file=null;file.status='完成';break}file.status='正在整理 '+r.done+' / '+r.total+' 段';renderMaterialProgress();await new Promise(resolve=>setTimeout(resolve,2500))}
+    for(let attempt=0;attempt<160;attempt++){if(epoch!==accountEpoch)return;const r=await materialRequest({action:'next',job:file.job});if(r.status==='completed'){file.result=r;file.text='';file.file=null;file.status='完成';break}file.status='正在整理 '+r.done+' / '+r.total+' 段';renderMaterialProgress();await new Promise(resolve=>setTimeout(resolve,Math.max(100,Math.min(2500,r.poll_after_ms||2500))))}
     if(!file.result)throw Error('整理仍在进行，可稍后继续。');
    }catch(e){if([429,503,504,401].includes(e.status)||!e.status){file.status='等待继续';await saveMaterialState();throw e}file.error=e.message}
    await saveMaterialState();if(!words.length)await loadCloud();renderMaterialProgress();
@@ -54,12 +54,13 @@ async function continueMaterials(){
   if(epoch!==accountEpoch)return;state.stage='finished';await saveMaterialState();await loadCloud();const completed=state.files.filter(f=>f.result).length;materialStatus(completed?'可用的资料已经整理好。现在可以开始今天的任务，需处理的文件在报告里。':'这批资料还没有成功整理，请查看报告中的原因，换一份可读课件再试。');
  }catch(e){if(epoch===accountEpoch)materialStatus(e.message+' 已保留进度，稍后点击“继续整理”。')}finally{if(epoch===accountEpoch){materialBusy=false;if(window._view?.type==='home')showAssistant()}}
 }
-function startDailyStudy(unknownOnly=false){
- if(!ownedStudyWords().length){materialStatus('先把自己的课件或词表放进来，莱克会帮你准备本课堂的第一轮。原来的资料仍保留在“我的学习资料”。');return showAssistant()}
- const now=Date.now(),status=w=>progress[w.id]||w.status;const review=ownedStudyWords().filter(w=>status(w)!=='new'&&(unknownOnly?status(w)==='unknown':!w.next_review_at||Date.parse(w.next_review_at)<=now)).sort((a,b)=>Date.parse(a.last_review_at||0)-Date.parse(b.last_review_at||0));const fresh=ownedStudyWords().filter(w=>status(w)==='new'||!status(w));
- queue=unknownOnly?review.slice(0,20):[...review.slice(0,10),...fresh.slice(0,Math.max(10,20-Math.min(review.length,10)))];if(!unknownOnly&&queue.length<20)queue.push(...review.slice(10,30-queue.length));
+function startDailyStudy(unknownOnly=false,options={}){
+ const pool=options.course?words.filter(w=>w.course===options.course&&(!options.week||w.week===options.week)):ownedStudyWords();const limit=Math.max(1,Math.min(100,options.count||20));
+ if(!pool.length){materialStatus('先把自己的课件或词表放进来，莱克会帮你准备本课堂的第一轮。原来的资料仍保留在“我的学习资料”。');return showAssistant()}
+ const now=Date.now(),status=w=>progress[w.id]||w.status;const review=pool.filter(w=>status(w)!=='new'&&(unknownOnly?status(w)==='unknown':options.course||!w.next_review_at||Date.parse(w.next_review_at)<=now)).sort((a,b)=>Date.parse(a.last_review_at||0)-Date.parse(b.last_review_at||0));const fresh=pool.filter(w=>status(w)==='new'||!status(w));
+ const reviewLimit=Math.min(10,Math.ceil(limit/2));queue=unknownOnly?review.slice(0,limit):[...review.slice(0,reviewLimit),...fresh.slice(0,limit-Math.min(review.length,reviewLimit))];if(!unknownOnly&&queue.length<limit)queue.push(...review.slice(reviewLimit,reviewLimit+limit-queue.length));
  if(!queue.length){materialStatus(unknownOnly?'目前没有生词。':'今天该复习的词已经完成了，下次到时间会自动安排。你也可以继续上传新课件。');return showAssistant()}
- qIndex=0;currentMode='choice';window.dailyStudy=true;window._view={type:'study'};showQuestion();
+ qIndex=0;currentMode=options.mode||'choice';window.dailyStudy=true;window._view={type:'study'};showQuestion();
 }
 function showMaterialsLibrary(){
  window.dailyStudy=false;document.body?.classList.remove('assistantMode');window._view={type:'materials'};setStudyNav('manager');app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><h1>我的学习资料</h1></div><p class="meta">你上传的内容与已有词库都保留在这里。课程名称与词汇可随时管理。</p><div class="grid">${Object.entries(COURSES).map(([id,name])=>`<article class="course" onclick="showWeeks('${id}')"><div><h2>${esc(name)}</h2>${courseRows.find(c=>c.id===id)?.is_shared_template?'<small>以前导入的共享资料 · 不混入今日任务</small>':''}</div><p>${countCourse(id)} 个词 · 已掌握 ${knownCount(id)}</p></article>`).join('')}</div><div class="uploadActions"><button class="secondary" onclick="showCourses()">整理课程与名称</button><button class="secondary" onclick="showManager()">编辑词汇</button></div>`;
@@ -78,3 +79,31 @@ async function importQuickWords(){if(!materialDraftTerms||materialBusy)return;co
 function editWord(id){const word=words.find(w=>w.id===id);if(!word)return;document.getElementById('wordEditor')?.remove();const dialog=document.createElement('dialog');dialog.id='wordEditor';dialog.innerHTML=`<h2>编辑词汇</h2><form id="wordEditForm"><label for="editEnglish">英文</label><input id="editEnglish" maxlength="200" required value="${esc(word.en)}"><br><br><label for="editChinese">中文释义</label><textarea id="editChinese" maxlength="500" required>${esc(word.zh)}</textarea><p class="meta">修改后保留已有学习进度。</p><div class="uploadActions"><button class="primary" type="submit">保存</button><button class="secondary" type="button" onclick="document.getElementById('wordEditor').close()">取消</button></div><p id="wordEditNotice" role="status"></p></form>`;document.body.append(dialog);dialog.showModal();const epoch=accountEpoch;dialog.querySelector('form').onsubmit=async event=>{event.preventDefault();const button=dialog.querySelector('button');button.disabled=true;try{await sb('user_vocabulary?id=eq.'+word.id,{method:'PATCH',body:JSON.stringify({english:document.getElementById('editEnglish').value.trim(),chinese:document.getElementById('editChinese').value.trim()})});if(epoch!==accountEpoch){dialog.close();return}await loadCloud();dialog.close();renderList()}catch(e){dialog.querySelector('#wordEditNotice').textContent='未保存，请核对是否已有同名词汇后重试。'}finally{button.disabled=false}}}
 
 function ownedStudyWords(){return words.filter(w=>!courseRows.find(c=>c.id===w.course)?.is_shared_template)}
+
+function resolveStudyRequest(hint,courses){
+ const compact=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/[\s_-]/g,'');
+ const text=compact(hint),weekMatch=text.match(/(?:第|week|wk|lecture|lec)(\d{1,2})(?:周|讲)?/i),countMatch=text.match(/(?<!\d)(\d{1,3})(?:个)?(?:单词|词汇|生词|错词|词|words?)/i);
+ const week=weekMatch?Number(weekMatch[1]):null,count=countMatch?Math.max(1,Math.min(100,Number(countMatch[1]))):20;
+ if(weekMatch&&(week<1||week>52))return {error:'周次应在 1 到 52 之间。'};
+ const courseText=text.replace(weekMatch?.[0]||'\0','').replace(countMatch?.[0]||'\0','');
+ const codes=[...courseText.matchAll(/[a-z]{2,6}\d{3,5}|\d{3,5}/g)].map(m=>m[0]);
+ const eligible=courses.filter(c=>!c.archived);
+ const matches=eligible.filter(c=>{const code=compact(c.code),name=compact(c.name);return codes.length?codes.some(v=>/^\d+$/.test(v)?code.match(/\d{3,5}$/)?.[0]===v||new RegExp('(?:^|[^0-9])'+v+'(?:$|[^0-9])').test(name):code===v||name.includes(v)):name.length>=3&&courseText.includes(name)});
+ if(codes.length&&!matches.length)return {error:'没有找到 '+codes.join('、')+' 的课程词库。请先上传该课程课件，或在“我的学习资料”核对课程名称。'};
+ const options={week,count,mode:/认识|不认识/.test(hint)?'recognition':'choice',unknownOnly:/生词|错词/.test(hint)};
+ if(matches.length===1)return {...options,course:matches[0].id};
+ if(matches.length>1)return {...options,candidates:matches};
+ const remainder=courseText.replace(/我想要|我需要|我要|帮我|我想|我|请|今天|现在|开始|学习|复习|背诵|背|学|单词|词汇|生词|错词|全部|所有|课程|认识|不认识|四选一|词|的|一下|吧|任务|[，。！？,.!?]/g,'');
+ if(remainder||week)return {...options,candidates:eligible,error:eligible.length?'请选一下你想学的课程，我会只安排这门课的词。':'还没有可学习的课程，请先上传课件。'};
+ return options;
+}
+function startStudyRequest(hint){
+ const request=resolveStudyRequest(hint,courseRows);
+ if(request.candidates){
+  materialStatus(request.error||'找到了几门匹配的课程，请选择一门。');const area=document.getElementById('materialProgress');area.replaceChildren();
+  for(const course of request.candidates){const button=document.createElement('button');button.className='secondary';button.textContent=course.code?course.code+' · '+course.name:course.name;button.onclick=()=>startDailyStudy(request.unknownOnly,{...request,course:course.id});area.append(button)}return;
+ }
+ if(request.error)return materialStatus(request.error);
+ if(request.course&&request.week&&!words.some(w=>w.course===request.course&&w.week===request.week))return materialStatus('这门课的 Week '+request.week+' 还没有词汇。请先上传这一周的课件。');
+ return startDailyStudy(request.unknownOnly,request);
+}
