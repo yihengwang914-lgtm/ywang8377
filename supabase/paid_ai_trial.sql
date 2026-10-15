@@ -7,7 +7,7 @@ create table public.material_ai_trial_budget (
  enabled boolean not null default true
 );
 create table public.material_ai_trial_calls (
- id uuid primary key, user_id uuid not null references auth.users(id),
+ id uuid primary key, user_id uuid references auth.users(id) on delete set null,
  model text not null check(model in ('glm-4.7-flashx','glm-4.6v-flashx')),
  reserved_micro bigint not null, actual_micro bigint,
  created_at timestamptz not null default now(), settled_at timestamptz
