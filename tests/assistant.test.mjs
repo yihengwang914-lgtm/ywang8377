@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {createAssistant,materialCourseCode} from '../supabase/functions/courselex-glm-import/assistant.js';
+import test from 'node:test';import assert from 'node:assert/strict';import {createAssistant,materialCourseCode,classifyMaterialKind} from '../supabase/functions/courselex-glm-import/assistant.js';
 const id='40000000-0000-4000-8000-000000000001',uid='10000000-0000-4000-8000-000000000001',course='20000000-0000-4000-8000-000000000001';
 const env=n=>({GLM_API_KEY:'fixture',SUPABASE_URL:'https://db.invalid',SUPABASE_PUBLISHABLE_KEYS:'{"default":"sb_publishable_test"}',SUPABASE_SECRET_KEYS:'{"default":"sb_secret_test"}'}[n]);
 const json=data=>new Response(JSON.stringify(data));
@@ -9,9 +9,18 @@ test('a batch allows many files in one start, and caps oversized collections',as
 test('foreign batch cannot be organized or sent to AI',async()=>{const a=app({foreign:true});assert.equal((await a.handler(req({action:'organize',batch:id,files:[{index:0,week:2,preview:'lecture'}]}))).status,404);assert.equal(a.calls.some(c=>c.url.includes('open.bigmodel.cn')),false)});
 test('explicit filename week wins over AI guess; course writes use user credentials',async()=>{const a=app();const result=await (await a.handler(req({action:'organize',batch:id,files:[{index:0,week:2,preview:'COM100 Communication'}]}))).json();assert.equal(result.plan[0].week,2);assert.equal(result.plan[0].course,course);const repeated=await a.handler(req({action:'organize',batch:id,files:[]}));assert.equal(repeated.status,200);assert.equal(a.calls.filter(c=>c.url.includes('open.bigmodel.cn')).length,1)});
 
+test('an uncertain file stays excluded until its owner confirms it is a lecture',async()=>{const a=app();const organized=await (await a.handler(req({action:'organize',batch:id,files:[{index:0,week:2,preview:'COM100 Communication'}]}))).json();assert.equal(organized.plan[0].include,false);const included=await (await a.handler(req({action:'include',batch:id,file:0}))).json();assert.equal(included.plan[0].include,true);assert.equal(included.plan[0].kind,'lecture');assert.equal(a.batch.plan[0].include,true)});
+
 test('course codes are read from metadata while camera and week numbering stay out',()=>{assert.equal(materialCourseCode('Week001/COM 5103 lecture'),'COM5103');assert.equal(materialCourseCode('IMG_1234 CS100 Computer Science'),'CS100');assert.equal(materialCourseCode('Week 1 introduction'),'')});
 
 test('Canvas underscore names retain course identity',()=>assert.equal(materialCourseCode('2026_COM5103_Week03.pdf'),'COM5103'));
+
+test('lecture classifier skips readings and keeps teaching slides',()=>{
+ assert.equal(classifyMaterialKind('COM5101/Readings/Week 2 article.pdf','Abstract Keywords DOI: 10.1 References','lecture').kind,'reading');
+ assert.equal(classifyMaterialKind('COM5101/Week 2 lecture.pptx','').kind,'lecture');
+ assert.equal(classifyMaterialKind('COM5101/Week 2.pdf','Abstract Keywords Journal Volume 5 References','lecture').kind,'reading');
+ assert.equal(classifyMaterialKind('COM5101/mystery.pdf','short text').include,false);
+});
 
 test('failed OCR releases reserved image count and permanent account limits do not retry',async()=>{
  let calls=0,count=0;
