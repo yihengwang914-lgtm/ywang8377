@@ -51,7 +51,7 @@ export function createHandler({env,fetch:fetcher=fetch,paid=false}){
     if(data.batch){
      if(!uuid(data.batch)||!Number.isInteger(data.file_index))throw new Failure(400,'资料任务无效。');
      const [batch]=await db('/rest/v1/user_material_batches?id=eq.'+data.batch+'&user_id=eq.'+user.id);
-     const target=batch?.plan?.find(f=>f.index===data.file_index);if(!target||target.course!==course||target.week!==week)throw new Failure(403,'课件不属于当前资料任务。');
+     const target=batch?.plan?.find(f=>f.index===data.file_index);if(!target||target.include===false||target.course!==course||target.week!==week)throw new Failure(403,'这个文件没有被确认为课件，不能自动生成词库。');
      const existing=await db(jobs+'?batch_id=eq.'+data.batch+'&file_index=eq.'+data.file_index);if(existing.length)return reply({job:existing[0].id,course,week,filename,total:existing[0].parts.length},201);
      batchFields={batch_id:data.batch,file_index:data.file_index};
     }
