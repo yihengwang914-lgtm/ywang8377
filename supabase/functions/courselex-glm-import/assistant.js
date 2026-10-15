@@ -40,7 +40,7 @@ export function createAssistant({env,fetch:fetcher=fetch,base,paid=false}){
    if(data.action==='resume'){
     const rows=await db(path+'?user_id=eq.'+user.id+'&created_at=gte.'+encodeURIComponent(new Date(Date.now()-86400000).toISOString())+'&order=created_at.desc&limit=1');if(!rows.length)return reply({batch:null});const batch=rows[0];const jobs=await db('/rest/v1/user_courseware_jobs?batch_id=eq.'+batch.id+'&select=id,file_index,status,result');return reply({batch:batch.id,manifest:batch.manifest,plan:batch.plan,jobs});
    }
-   if(!uuid(data.batch))throw new ErrorResponse(400,'资料任务无效。');const [batch]=await db(path+'?id=eq.'+data.batch+'&user_id=eq.'+user.id);if(!batch)throw new ErrorResponse(404,'资料任务不存在或已过期。');
+   if(!uuid(data.batch))throw new ErrorResponse(400,'资料任务无效。');const [batch]=await db(path+'?id=eq.'+data.batch+'&user_id=eq.'+user.id);if(!batch)throw new ErrorResponse(404,'资料任务不存在或已过期。');const newer=await db(path+'?user_id=eq.'+user.id+'&created_at=gt.'+encodeURIComponent(batch.created_at)+'&select=id&limit=1');if(newer.length)throw new ErrorResponse(409,'你已经上传了更新的一批资料，这个旧任务已自动停止。',false);
    if(data.action==='include'){
     if(!Number.isInteger(data.file)||data.file<0||data.file>=batch.manifest.length||!Array.isArray(batch.plan))throw new ErrorResponse(400,'文件确认信息无效。');
     const plan=batch.plan.map(entry=>entry.index===data.file?{...entry,include:true,kind:'lecture',reason:'你已确认这是老师课件'}:entry);if(!plan.some(entry=>entry.index===data.file))throw new ErrorResponse(404,'没有找到这份文件的识别结果。');
