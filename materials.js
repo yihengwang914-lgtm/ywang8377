@@ -68,7 +68,7 @@ function showMaterialsHelp(){materialStatus('Canvas：进入课程的 Files，�
 
 async function finishMaterialBatch(){if(materialBusy||!materialState)return;if(!confirm('结束未完成的整理？已经导入的词汇会保留，未导入的文件可稍后重新上传。'))return;materialState.stage='finished';await saveMaterialState();showAssistant()}
 
-async function materialRequest(body){const epoch=accountEpoch;for(let attempt=0;attempt<7;attempt++){try{return await coursewareRequest(body)}catch(e){if(epoch!==accountEpoch)throw e;if(![429,503,504].includes(e.status)||attempt===6)throw e;const delay=Math.min(60000,10000*2**attempt);materialStatus((e.message||'免费 AI 正忙。')+' 约 '+Math.round(delay/1000)+' 秒后自动继续，不用重复上传。');await new Promise(resolve=>setTimeout(resolve,delay));if(epoch!==accountEpoch)throw Error('账号已切换。')}}}
+async function materialRequest(body){const epoch=accountEpoch;for(let attempt=0;attempt<7;attempt++){try{return await coursewareRequest(body)}catch(e){if(epoch!==accountEpoch)throw e;if(e.retryable===false||![429,503,504].includes(e.status)||attempt===6)throw e;const delay=Math.min(60000,10000*2**attempt);materialStatus((e.message||'免费 AI 正忙。')+' 约 '+Math.round(delay/1000)+' 秒后自动继续，不用重复上传。');await new Promise(resolve=>setTimeout(resolve,delay));if(epoch!==accountEpoch)throw Error('账号已切换。')}}}
 
 function readableMaterialError(e){if(/password/i.test(e.name+' '+e.message))return '这份 PDF 有密码保护，请先解锁再上传。';if(/invalid pdf|invalidpdf|pdf structure/i.test(e.name+' '+e.message))return '这份 PDF 无法打开，可能已损坏，请从 Canvas 重新下载。';return e.message||'文件无法读取，请重新导出为 PDF。'}
 

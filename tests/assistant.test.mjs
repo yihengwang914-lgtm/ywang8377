@@ -12,3 +12,18 @@ test('explicit filename week wins over AI guess; course writes use user credenti
 test('course codes are read from metadata while camera and week numbering stay out',()=>{assert.equal(materialCourseCode('Week001/COM 5103 lecture'),'COM5103');assert.equal(materialCourseCode('IMG_1234 CS100 Computer Science'),'CS100');assert.equal(materialCourseCode('Week 1 introduction'),'')});
 
 test('Canvas underscore names retain course identity',()=>assert.equal(materialCourseCode('2026_COM5103_Week03.pdf'),'COM5103'));
+
+test('failed OCR releases reserved image count and permanent account limits do not retry',async()=>{
+ let calls=0,count=0;
+ for(const [code,retryable] of [['1302',true],['1113',false]]){
+ const handler=createAssistant({env,base:async()=>json({}),fetch:async(url,opt={})=>{
+ if(url.endsWith('/auth/v1/user'))return json({id:uid,email_confirmed_at:'2026-10-14'});
+ if(url.includes('/user_material_batches')){if(opt.method==='PATCH'){count=JSON.parse(opt.body).ocr_calls;return json([{id,ocr_calls:count}])}return json([{id,user_id:uid,manifest:[{name:'scan.pdf',size:10}],ocr_calls:count}])}
+ if(url.includes('/rpc/'))return json(true);
+ if(url.includes('open.bigmodel.cn')){calls++;return new Response(JSON.stringify({error:{code,message:'provider detail'}}),{status:429})}
+ throw Error(url)
+ }});
+ const r=await handler(req({action:'ocr',batch:id,file:0,image:'data:image/jpeg;base64,AAAA'}));
+ const body=await r.json();assert.equal(body.retryable,retryable);assert.ok(body.error.includes(code));assert.equal(count,0);
+ }assert.equal(calls,2)
+});
