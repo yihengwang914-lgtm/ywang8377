@@ -10,7 +10,7 @@ async function readCoursewareText(file,{ocr,onProgress=()=>{}}={}){
    if(pdf.numPages>100)throw Error('课件超过 100 页，请拆分文件后上传。');
    for(let page=1;page<=pdf.numPages;page++){
     const pageObject=await pdf.getPage(page);onProgress('读取第 '+page+' / '+pdf.numPages+' 页');const content=await pageObject.getTextContent();let words=content.items.map(item=>item.str||'').join(' ').trim();
-    if(words.length<80&&ocr){
+    if(words.length<12&&ocr){
      const viewport=pageObject.getViewport({scale:1});const scale=Math.min(2,1400/Math.max(viewport.width,viewport.height));const v=pageObject.getViewport({scale});const canvas=document.createElement('canvas');canvas.width=Math.ceil(v.width);canvas.height=Math.ceil(v.height);await pageObject.render({canvasContext:canvas.getContext('2d'),viewport:v}).promise;
      onProgress('识别图片页 '+page+' / '+pdf.numPages);words=await ocr(canvas.toDataURL('image/jpeg',0.8),page);canvas.width=canvas.height=0;
     }
@@ -29,7 +29,7 @@ async function readCoursewareText(file,{ocr,onProgress=()=>{}}={}){
    const xml=new TextDecoder().decode(await boundedArchiveBytes(entry,5*1024*1024));if(xml.length>5*1024*1024)throw Error('课件页面内容过大，请拆分。');
    const doc=new DOMParser().parseFromString(xml,'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('课件内容损坏，请重新导出。');
    let words=[...doc.getElementsByTagNameNS('*','t')].map(el=>el.textContent).join(' ').trim();
-   if(words.length<80&&ocr){
+   if(words.length<12&&ocr){
     const relName=extension==='pptx'?name.replace('slides/','slides/_rels/')+'.rels':'word/_rels/document.xml.rels';const relEntry=zip.files[relName];
     if(relEntry){const rels=new DOMParser().parseFromString(new TextDecoder().decode(await boundedArchiveBytes(relEntry,1024*1024)),'application/xml');const ids=[...doc.getElementsByTagNameNS('*','blip')].map(el=>el.getAttribute('r:embed'));for(const id of ids){const rel=[...rels.getElementsByTagName('Relationship')].find(el=>el.getAttribute('Id')===id);const target=rel?.getAttribute('Target');if(!target||rel.getAttribute('TargetMode')==='External')continue;const mediaName=new URL(target,'https://local.invalid/'+name).pathname.slice(1);const media=zip.files[mediaName];if(!media||!/\.(png|jpe?g)$/i.test(mediaName)||(media._data?.uncompressedSize||0)>10*1024*1024)continue;const image=await coursewareBitmap(new Blob([await boundedArchiveBytes(media,10*1024*1024)]));if(image.width>150&&image.height>100){const scale=Math.min(1,1400/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.ceil(image.width*scale);canvas.height=Math.ceil(image.height*scale);canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);words+='\n'+await ocr(canvas.toDataURL('image/jpeg',0.8),index+1);canvas.width=canvas.height=0;}image.close();}}
    }
