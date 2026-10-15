@@ -32,6 +32,7 @@ async function continueMaterials(){
  if(materialBusy||!materialState)return;const state=materialState,epoch=accountEpoch;materialBusy=true;showAssistant();
  try{
   if(state.stage==='reading'){
+   for(const file of state.files)if(obviousReadingMaterial(file.path)){file.prefilterKind='reading';file.status='阅读材料，已先跳过'}
    for(const [index,file] of state.files.entries()){if(epoch!==accountEpoch)return;if(file.prefilterKind==='reading'||file.text||file.error)continue;file.status='正在读取';materialStatus('正在检查 '+(index+1)+' / '+state.files.length+'：'+file.path);
     try{file.text=await readCoursewareText(file.file,{ocr:async image=>{const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(image))),b=>b.toString(16).padStart(2,'0')).join('');file.ocrCache=file.ocrCache||{};if(file.ocrCache[hash])return file.ocrCache[hash];const r=await materialRequest({action:'ocr',batch:state.batch,file:index,image});file.ocrCache[hash]=r.text;await saveMaterialState();return r.text},onProgress:text=>materialStatus(file.path+' · '+text)});file.status='文字已读取'}catch(e){if(e.status===409)throw e;if([429,503,504,401].includes(e.status)){file.status='等待继续';await saveMaterialState();throw e}file.error=readableMaterialError(e);file.status='需处理'}
     await saveMaterialState();renderMaterialProgress();
