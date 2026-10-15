@@ -1,7 +1,7 @@
 let materialState=null,materialSelection=[],materialBusy=false,materialMessage='',materialPanelOpen=false,materialAutoResume=false,materialDraftTerms=null;
 function materialDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open('courselex-materials-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('batches');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function saveMaterialState(){if(!materialState)return;try{const db=await materialDB();await new Promise((resolve,reject)=>{const t=db.transaction('batches','readwrite');t.objectStore('batches').put(materialState,materialState.uid);t.oncomplete=resolve;t.onerror=reject});db.close()}catch{materialState.localUnavailable=true}}
-async function resetMaterialsAccount(uid){materialState=null;materialSelection=[];materialBusy=false;materialMessage='';materialAutoResume=false;materialDraftTerms=null;if(!uid)return;const epoch=accountEpoch;try{const db=await materialDB();const state=await new Promise((resolve,reject)=>{const r=db.transaction('batches').objectStore('batches').get(uid);r.onsuccess=()=>resolve(r.result);r.onerror=reject});db.close();if(epoch!==accountEpoch)return;if(state&&Date.now()-state.started<86400000){materialState=state;try{const remote=await coursewareRequest({action:'resume'});if(remote.batch===state.batch&&Array.isArray(remote.plan)){let repaired=false;for(const entry of remote.plan){const file=state.files[entry.index];if(!file)continue;if(file.plan?.include===false&&entry.include===true&&!file.result)repaired=true;file.plan=entry}if(repaired)state.stage='learning';await saveMaterialState()}}catch{}if(window._view?.type==='home')showHome()}}catch{}}
+async function resetMaterialsAccount(uid){materialState=null;materialSelection=[];materialBusy=false;materialMessage='';materialAutoResume=false;materialDraftTerms=null;if(!uid)return;const epoch=accountEpoch;try{const db=await materialDB();const state=await new Promise((resolve,reject)=>{const r=db.transaction('batches').objectStore('batches').get(uid);r.onsuccess=()=>resolve(r.result);r.onerror=reject});db.close();if(epoch!==accountEpoch)return;if(state&&Date.now()-state.started<86400000){materialState=state;try{const remote=await coursewareRequest({action:'resume'});if(remote.batch===state.batch&&Array.isArray(remote.plan)){let repaired=false;for(const entry of remote.plan){const file=state.files[entry.index];if(!file)continue;if(file.plan?.include===false&&entry.include===true&&!file.result)repaired=true;if(file.error&&/AI (?:词表|未返回)/.test(file.error)){file.error='';file.status='等待重新整理';repaired=true}file.plan=entry}if(repaired)state.stage='learning';await saveMaterialState()}}catch{}if(window._view?.type==='home')showHome()}}catch{}}
 function showAssistant(){
  if(!session)return showAuth();window.dailyStudy=false;document.body?.classList.add('assistantMode');setStudyNav('home');window._view={type:'home'};
  const active=materialState&&materialState.stage!=='finished';const todayCount=Math.min(20,ownedStudyWords().filter(w=>(progress[w.id]||w.status)==='new'||!w.next_review_at||Date.parse(w.next_review_at)<=Date.now()).length);
@@ -44,15 +44,17 @@ async function continueMaterials(){
    if(metadata.length){const {plan}=await materialRequest({action:'organize',batch:state.batch,files:metadata,hint:state.hint});if(epoch!==accountEpoch)return;for(const entry of plan)state.files[entry.index].plan=entry}
    state.stage='learning';await saveMaterialState();
   }
-  for(const [index,file] of state.files.entries()){
-   if(epoch!==accountEpoch)return;if(file.error||file.result||!file.plan||file.plan.include===false)continue;file.status='正在生成词库';materialStatus('整理 '+(index+1)+' / '+state.files.length+'：'+file.path);
+  const pending=state.files.map((file,index)=>({file,index})).filter(({file})=>!file.error&&!file.result&&file.plan&&file.plan.include!==false);let nextFile=0,retryError=null;
+  async function processFile(){for(;;){const item=pending[nextFile++];if(!item)return;const {file,index}=item;
+   if(epoch!==accountEpoch)return;file.status='正在生成词库';materialStatus('两份课件并行整理中 · '+state.files.filter(f=>f.result).length+' / '+pending.length+' 已完成');renderMaterialProgress();
    try{
     if(!file.job){const prepared=await materialRequest({action:'prepare',course:file.plan.course,week:file.plan.week,filename:file.path.split('/').pop(),parts:splitCoursewareText(file.text),batch:state.batch,file_index:index});file.job=prepared.job;await saveMaterialState()}
     for(let attempt=0;attempt<160;attempt++){if(epoch!==accountEpoch)return;const r=await materialRequest({action:'next',job:file.job});if(r.status==='completed'){file.result=r;file.text='';file.file=null;file.status='完成';break}file.status='正在整理 '+r.done+' / '+r.total+' 段';renderMaterialProgress();await new Promise(resolve=>setTimeout(resolve,Math.max(100,Math.min(2500,r.poll_after_ms||2500))))}
     if(!file.result)throw Error('整理仍在进行，可稍后继续。');
-   }catch(e){if(e.status===409)throw e;if([429,503,504,401].includes(e.status)||!e.status){file.status='等待继续';await saveMaterialState();throw e}file.error=e.message}
-   await saveMaterialState();if(!words.length)await loadCloud();renderMaterialProgress();
-  }
+   }catch(e){if(e.status===409)throw e;if([429,503,504,401].includes(e.status)||!e.status){file.status='等待继续';retryError=retryError||e}else file.error=e.message}
+   await saveMaterialState();renderMaterialProgress();
+  }}
+  await Promise.all([processFile(),processFile()]);if(retryError)throw retryError;
   if(epoch!==accountEpoch)return;state.stage='finished';await saveMaterialState();await loadCloud();const completed=state.files.filter(f=>f.result).length,skipped=state.files.filter(f=>f.plan?.include===false).length;materialStatus(completed?'老师课件已经整理好'+(skipped?'，并跳过 '+skipped+' 份阅读或待确认材料':'')+'。现在可以开始今天的任务。':skipped?'这批文件暂未确认到老师课件，阅读材料已跳过；可在报告中手动确认。':'这批资料还没有成功整理，请查看报告中的原因，换一份可读课件再试。');
  }catch(e){if(epoch===accountEpoch)materialStatus(e.message+' 已保留进度，稍后点击“继续整理”。')}finally{if(epoch===accountEpoch){materialBusy=false;if(window._view?.type==='home')showAssistant()}}
 }
