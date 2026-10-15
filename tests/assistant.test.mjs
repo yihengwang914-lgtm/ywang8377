@@ -2,8 +2,8 @@ import test from 'node:test';import assert from 'node:assert/strict';import {cre
 const id='40000000-0000-4000-8000-000000000001',uid='10000000-0000-4000-8000-000000000001',course='20000000-0000-4000-8000-000000000001';
 const env=n=>({GLM_API_KEY:'fixture',SUPABASE_URL:'https://db.invalid',SUPABASE_PUBLISHABLE_KEYS:'{"default":"sb_publishable_test"}',SUPABASE_SECRET_KEYS:'{"default":"sb_secret_test"}'}[n]);
 const json=data=>new Response(JSON.stringify(data));
-function app({verified=true,foreign=false,newer=false}={}){
- let batch={id,user_id:uid,manifest:[{name:'COM100/Week 2.pdf',size:10}],ocr_calls:0,created_at:'2026-10-14T00:00:00Z'};const calls=[];
+function app({verified=true,foreign=false,newer=false,manifest=[{name:'COM100/Week 2.pdf',size:10}]}={}){
+ let batch={id,user_id:uid,manifest,ocr_calls:0,created_at:'2026-10-14T00:00:00Z'};const calls=[];
  const handler=createAssistant({env,base:async()=>json({base:true}),fetch:async(url,opt={})=>{
   calls.push({url,opt});if(url.endsWith('/auth/v1/user'))return json({id:uid,email_confirmed_at:verified?'2026-10-14':null});
   if(url.includes('/user_material_batches')){if(opt.method==='POST'){Object.assign(batch,JSON.parse(opt.body));return json([batch])}if(opt.method==='PATCH'){Object.assign(batch,JSON.parse(opt.body));return json([batch])}if(url.includes('created_at=gt.'))return json(newer?[{id:'50000000-0000-4000-8000-000000000001'}]:[]);return json(foreign?[]:[batch])}
@@ -19,7 +19,9 @@ test('explicit filename week wins over AI guess; course writes use user credenti
 
 test('an uncertain file stays excluded until its owner confirms it is a lecture',async()=>{const a=app();const organized=await (await a.handler(req({action:'organize',batch:id,files:[{index:0,week:2,preview:'COM100 Communication'}]}))).json();assert.equal(organized.plan[0].include,false);const included=await (await a.handler(req({action:'include',batch:id,file:0}))).json();assert.equal(included.plan[0].include,true);assert.equal(included.plan[0].kind,'lecture');assert.equal(a.batch.plan[0].include,true)});
 
-test('course codes are read from metadata while camera and week numbering stay out',()=>{assert.equal(materialCourseCode('Week001/COM 5103 lecture'),'COM5103');assert.equal(materialCourseCode('IMG_1234 CS100 Computer Science'),'CS100');assert.equal(materialCourseCode('Week 1 introduction'),'')});
+test('one explicit course code applies to every file in the uploaded course pack',async()=>{const a=app({manifest:[{name:'Week 1/Course Introduction COM5103.pdf',size:10},{name:'Week 2/Privacy.pdf',size:10}]});const result=await (await a.handler(req({action:'organize',batch:id,files:[{index:0,week:1,preview:'course introduction'},{index:1,week:2,preview:'privacy'}]}))).json();assert.deepEqual(result.plan.map(file=>file.name),['COM5103','COM5103']);assert.equal(result.plan[1].include,true)});
+
+test('course codes are read from metadata while camera and dates stay out',()=>{assert.equal(materialCourseCode('Week001/COM 5103 lecture'),'COM5103');assert.equal(materialCourseCode('IMG_1234 CS100 Computer Science'),'CS100');assert.equal(materialCourseCode('Week 1 introduction'),'');assert.equal(materialCourseCode('published July 2011'),'');assert.equal(materialCourseCode('since 2014'),'')});
 
 test('Canvas underscore names retain course identity',()=>assert.equal(materialCourseCode('2026_COM5103_Week03.pdf'),'COM5103'));
 
@@ -27,6 +29,8 @@ test('lecture classifier skips readings and keeps teaching slides',()=>{
  assert.equal(classifyMaterialKind('COM5101/Readings/Week 2 article.pdf','Abstract Keywords DOI: 10.1 References','lecture').kind,'reading');
  assert.equal(classifyMaterialKind('COM5101/Week 2 lecture.pptx','').kind,'lecture');
  assert.equal(classifyMaterialKind('COM5101/Week 2.pdf','Abstract Keywords Journal Volume 5 References','lecture').kind,'reading');
+ assert.equal(classifyMaterialKind('Week 2/Media Ownership.pdf','short text').kind,'lecture');
+ assert.equal(classifyMaterialKind('Week 3/Coalition (2025) Report.pdf','short text').kind,'reading');
  assert.equal(classifyMaterialKind('COM5101/mystery.pdf','short text').include,false);
 });
 
