@@ -47,7 +47,7 @@ async function readCoursewareText(file,{ocr,onProgress=()=>{}}={}){
 }
 function splitCoursewareText(text){
  const parts=[];let rest=text;
- while(rest.length){let end=Math.min(6000,rest.length);if(end<rest.length){const boundary=Math.max(rest.lastIndexOf('\n',end),rest.lastIndexOf(' ',end));if(boundary>3000)end=boundary}parts.push(rest.slice(0,end));rest=rest.slice(end).trimStart()}
+ while(rest.length){let end=Math.min(9000,rest.length);if(end<rest.length){const boundary=Math.max(rest.lastIndexOf('\n',end),rest.lastIndexOf(' ',end));if(boundary>4500)end=boundary}parts.push(rest.slice(0,end));rest=rest.slice(end).trimStart()}
  if(parts.length>32)throw Error('课件文字过多，请拆分。');return parts;
 }
 async function loadMaterialScript(src,globalName){if(window[globalName])return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(Error('读取组件加载失败，请检查网络后重试。'));document.head.append(s)})}
