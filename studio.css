@@ -87,3 +87,43 @@ body{background:#f6f8f7}
  .welcomeDialog{padding:23px}.welcomeDialog h2{font-size:24px}.welcomeBody{font-size:16px}.welcomeDetail{font-size:14px}.welcomeActions{gap:7px}.welcomeActions button{padding:10px 14px}
 }
 @media(max-height:600px){.isEmpty .assistantBox{margin-top:16px}.learningWelcome{padding-bottom:18px}.learningWelcome h2{font-size:26px}.welcomeVisual{display:none}.welcomeDialog{padding:18px 22px}}
+
+/* One mobile scroll area: the conversation moves, the composer stays reachable. */
+.attachmentChip{display:flex;align-items:center;gap:4px;max-width:100%;padding:3px 4px 3px 10px!important}.attachmentChip>span{border:0;padding:0;min-width:0;overflow-wrap:anywhere}.attachmentChip>button{border:0;background:none;min-width:44px;min-height:44px;color:#4a6b57;font-size:22px;cursor:pointer}
+.sendButton.uploadSend{width:auto;min-width:110px;border-radius:12px;padding:0 14px;font-size:14px}
+.materialAttachments:not(:empty){margin-bottom:12px}.materialNotice{font-size:14px;line-height:1.7;margin-bottom:12px}.materialNotice:empty{display:none}
+.finishedReport,.finishedReport>summary,.finishedReport summary span,.batchSummary{font-size:13px}.finishedReport>summary,.fileList>summary{padding:10px 0;min-height:44px}.finishedReport summary span{font-size:13px}.batchReady{font-size:14px;line-height:1.7;color:#327d62}.batchSummary strong{display:block;font-size:14px;line-height:1.7}
+.nextLearningQuestion{align-self:flex-start;min-height:44px;margin-top:4px}.signupConfirmation{margin:36px auto!important;line-height:1.8}.signupConfirmation h2{font-size:24px}.signupConfirmation strong{overflow-wrap:anywhere}.signupConfirmation>.primary,.signupConfirmation>.linkbtn{display:block;width:100%;margin-top:14px;min-height:44px}.signupConfirmation .notice{font-size:14px}
+.learningTask .taskToggle,.drawerTabs button,.drawerHeading button{min-height:44px;min-width:44px}.learningDrawer .reviewItem strong,.learningDrawer .threadItem strong{font-size:14px}.learningDrawer .reviewItem small,.learningDrawer .threadItem small{font-size:12px}
+.learningBackdrop{position:fixed;inset:0;z-index:39;background:#213d2d36;backdrop-filter:blur(2px)}
+@media(max-width:600px){
+ body.assistantMode{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+ .assistantMode .siteHeader{flex:0 0 64px;width:100%;margin:0;height:64px}
+ .assistantMode main{flex:1;min-height:0;width:100%;margin:0!important;padding:0 16px max(8px,env(safe-area-inset-bottom))!important;display:flex}
+ .assistantWorkspace{flex:1;min-height:0;height:100%;min-width:0}
+ .lexWorkspaceHeader{flex:none;min-height:46px;padding-bottom:4px}
+ .assistantBox,.isEmpty .assistantBox{flex:1;min-height:0;margin-top:0;padding:0}
+ .hasConversation .assistantConversation,.assistantConversation{flex:1;min-height:0!important;max-height:none!important;padding:14px 1px 18px;overscroll-behavior:contain;overflow:auto}
+ .isEmpty .assistantBox{justify-content:center;overflow:auto;overscroll-behavior:contain}
+ .isEmpty .assistantConversation{flex:none;min-height:0!important;padding:14px 0 0}
+ .learningWelcome{padding:12px 0 24px}.learningWelcome h2{font-size:27px}
+ .assistantComposer{flex:none;padding:14px 16px 10px}.assistantComposer textarea{min-height:64px;max-height:110px}
+ .assistantUtilities{flex:none;margin:4px auto 0;gap:12px}.assistantUtilities .linkbtn{min-height:44px;font-size:13px}
+ #materialProgress{flex:none;max-height:116px;overflow:auto;overscroll-behavior:contain}
+ #materialProgress:has(details[open]){max-height:36dvh}
+ #materialNotice{flex:none;max-height:90px;overflow:auto;margin-bottom:8px;padding:10px 12px!important}
+ .batchSummary{padding:12px;margin-top:8px}.batchSummary progress{margin:8px 0}.batchSummary .fileList>summary{font-size:13px}.batchReady{margin:6px 0}
+ .finishedReport{margin-top:2px}.learningQuiz{margin-top:0}.learningStarters{margin:12px 0 0;gap:7px}.learningStarters button{font-size:13px;min-height:44px;padding:10px 12px}
+ .learningDrawer{top:auto;bottom:max(10px,env(safe-area-inset-bottom));max-height:82dvh;left:10px;right:10px;width:auto;border-radius:22px;padding:18px}
+ .learningDrawer .reviewItem .secondary{min-height:44px;font-size:13px}
+}
+@media(max-width:600px) and (max-height:560px){.learningWelcome{padding:6px 0 15px}.learningWelcome h2{font-size:23px}.assistantComposer textarea{min-height:42px;max-height:70px}.isEmpty .learningStarters{display:none}.assistantUtilities{display:none}.assistantMode .siteHeader{flex-basis:48px;height:48px}.lexWorkspaceHeader{min-height:40px}#materialProgress{max-height:65px}}
+
+/* A quieter reading scale on a full desktop window and on a phone. */
+.assistantWorkspace{width:min(800px,100%)}
+.chatMessage{font-size:15px;line-height:1.78;letter-spacing:0;font-weight:400}
+.fromLex h3{font-size:16px;line-height:1.6;margin:18px 0 9px;font-weight:600}
+.fromLex p{margin-bottom:11px}.fromLex li{padding:2px 0}.fromLex strong{font-weight:600}
+.assistantComposer textarea{font-size:16px;line-height:1.65}
+.learningQuiz h3{font-size:16px;line-height:1.65}.learningOptions button{font-size:14px;line-height:1.65}
+@media(max-width:600px){.chatMessage{font-size:14.5px;line-height:1.78}.fromLex h3{font-size:15.5px}.learningQuiz h3{font-size:15.5px;line-height:1.7}.learningOptions button{font-size:14px}.assistantComposer textarea{font-size:16px}}

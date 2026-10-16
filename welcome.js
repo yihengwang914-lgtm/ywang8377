@@ -30,6 +30,6 @@ function finishWelcome(){
  const done=new Date().toISOString();userProfile.welcome_completed_at=done;
  try{localStorage.setItem('courselex-welcome:'+uid,done)}catch{}
  const dialog=document.getElementById('welcomeDialog');if(dialog?.open)dialog.close();dialog?.remove();welcomeUser='';
- const target=document.getElementById('materialPrompt');target?.focus();welcomeReturnFocus=null;
+ const target=document.getElementById('materialPrompt');if(!window.matchMedia?.('(pointer: coarse)').matches)target?.focus();welcomeReturnFocus=null;
  sb('user_profiles?user_id=eq.'+uid,{method:'PATCH',body:JSON.stringify({welcome_completed_at:done})}).catch(()=>{});
 }

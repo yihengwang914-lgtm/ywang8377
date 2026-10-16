@@ -6,11 +6,14 @@
 
 3.1 更新：首页集中到一个输入框，首次注册登录有三步可跳过的功能引导。课件导入后后台准备按账号、课程、周次和原文版本隔离的英文练习；先核对出处，再独立核对答案。普通练习优先从题库取题，提交前不下发答案。特定知识点、简答等请求仍按需生成。
 
+3.2 更新：手机使用单一对话滚动区与固定输入框；正文缩小并限制全屏阅读宽度。附件可移除，上传前显示处理说明。明确课号与周次的资料包直接分类，课件保存后即可问答，词库继续整理；刷新合并服务器任务状态，换设备可找回已上传的课程与整理进度。答题后先阅读解析，再点下一题；复习旧题直接打开，无需额外模型调用。
+
 当前实现：`learning-ui.js`、`materials.js`、`assistant.css`、`studio.css` 和 `supabase/functions/courselex-glm-import/`。数据库增量见 `supabase/learning_assistant.sql`，部署、旧课件重新上传和恢复说明见 [MIGRATION.md](MIGRATION.md)。免费容量及 AI 预算说明见 [CAPACITY.md](CAPACITY.md)。
 
 - 单元与回归：`node --test tests/*.test.mjs`。
 - 数据隔离验收：`tests/learning-security.sql`，事务最终回滚，不留下测试数据。
 - 人工全流程验收：`scripts/test-learning-live.mjs` 和 `scripts/test-learning-browser.mjs`，使用独立 QA 账号，仅从 `/tmp` 读取临时测试会话。
+- 新用户实测：先用真实注册与邮箱确认接口创建独立 QA 账号，再运行 `scripts/create_journey_fixture.py` 与 `scripts/test-new-user-journey.mjs`；覆盖三周 PDF/PPTX/DOCX 整包、重复文件、阅读排除、处理中刷新、手机输入、讲解、英文练习、计划、跨设备恢复和复习。邮箱使用保留测试域，不宣称真实收件箱投递已验证。
 - 界面验收：`node scripts/test-studio-ui.mjs`，使用固定教学示例检查 320/390/768/1440 像素宽度与对话卡片，不使用真实账号或付费模型。
 - 用户指南与产品介绍：网站根目录两份 PDF；生成脚本 `scripts/create_learning_pdfs.py`。
 - DeepTutor 提示规则复用与许可：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

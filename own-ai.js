@@ -1,5 +1,6 @@
 let ownTerms=[];
 function showOwnAI(c=currentCourse,w=currentWeek){
+ document.body?.classList?.remove('assistantMode');
  if(!session)return showAuth();if(!Object.keys(COURSES).length)return showCourses();
  currentCourse=COURSES[c]?c:Object.keys(COURSES)[0];currentWeek=Math.min(Number(w)||1,weekCount(currentCourse));ownTerms=[];window._view={type:'ownAI',c:currentCourse,w:currentWeek};
  app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回首页</button><h1>用自己的 AI 整理</h1></div><section class="panel uploadPanel"><div class="lexIntro"><img src="icons/courselex-192.png" alt="" width="36" height="36"><div><strong>莱克 Lex · 词表整理助手</strong><p>把下面的提示词交给你自己的 AI，整理完成后将词表导入奇点。</p></div></div><p class="meta">复制提示词，在你自己的 ChatGPT 或其他 AI 中上传课件，再把生成的词表带回来。此方式不使用本站的 AI 额度。</p>

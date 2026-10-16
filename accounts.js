@@ -2,6 +2,7 @@ const LEGACY_EMAIL='ywang8377-c@my.cityu.edu.hk';
 const returnUrl=location.hostname==='www.courselexai.com'||location.hostname==='courselexai.com'?'https://www.courselexai.com/':'https://yihengwang914-lgtm.github.io/ywang8377/';
 let recoveryMode=false;
 let userProfile=null,isAdmin=false,activityTimer=null,activitySession='';
+let signupEmail='',signupResendAt=0;
 const SCHOOL_OPTIONS=[
  ['香港城市大学','City University of Hong Kong · CityUHK · 城大'],['香港大学','The University of Hong Kong · HKU · 港大'],['香港中文大学','The Chinese University of Hong Kong · CUHK · 中大'],['香港科技大学','The Hong Kong University of Science and Technology · HKUST · 科大'],['香港理工大学','The Hong Kong Polytechnic University · PolyU · 理大'],['香港浸会大学','Hong Kong Baptist University · HKBU · 浸大'],['岭南大学','Lingnan University · LU'],['香港教育大学','The Education University of Hong Kong · EdUHK · 教大'],['香港都会大学','Hong Kong Metropolitan University · HKMU · 都大'],['香港恒生大学','The Hang Seng University of Hong Kong · HSUHK'],['香港树仁大学','Hong Kong Shue Yan University · HKSYU'],['香港珠海学院','Hong Kong Chu Hai College · HKCHC'],['香港演艺学院','The Hong Kong Academy for Performing Arts · HKAPA'],['香港高等教育科技学院','Technological and Higher Education Institute of Hong Kong · THEi']
 ];
@@ -12,13 +13,13 @@ function showAuth(mode='login'){
  document.getElementById('userNav').hidden=true;window._view={type:'auth'};
  const signup=mode==='signup',reset=mode==='reset';
  app.innerHTML=`<div class="authLayout"><section class="hero authHero"><div class="authEyebrow">莱克 Lex · AI 学习助理</div><h1>每一个知识点，<br>都是新的起点。</h1><p>上传课堂课件，和莱克一起理解知识、练习巩固、安排复习。</p></section><section class="panel authPanel"><h2>${signup?'邮箱注册':reset?'重置密码':'登录奇点'}</h2><form onsubmit="submitAuth(event,'${mode}')">
- <label for="authEmail">邮箱</label><input id="authEmail" type="email" autocomplete="email" required maxlength="254">
+ <label for="authEmail">邮箱</label><input id="authEmail" type="email" autocomplete="email" required maxlength="254" value="${esc(signupEmail)}">
  ${reset?'':`<label for="authPassword">密码</label><input id="authPassword" type="password" autocomplete="${signup?'new-password':'current-password'}" minlength="8" required>`}
  ${signup?'<p class="meta">密码至少 8 位。验证邮箱后即可保存学习进度。</p>'+registrationProfileFields():''}<button id="authSubmit" class="primary">${signup?'注册':reset?'发送重置邮件':'登录'}</button></form>
  <div id="authNotice" role="status" class="notice"></div><div class="uploadActions"><button class="linkbtn" onclick="showAuth('${signup||reset?'login':'signup'}')">${signup||reset?'返回登录':'创建账号'}</button>${!signup&&!reset?'<button class="linkbtn" onclick="showAuth(\'reset\')">忘记密码</button>':''}</div></section></div>`;
 }
 async function submitAuth(event,mode){
- event.preventDefault();const button=document.getElementById('authSubmit');button.disabled=true;
+ event.preventDefault();const button=document.getElementById('authSubmit');button.disabled=true;const label=button.textContent;button.textContent=mode==='signup'?'正在注册…':mode==='reset'?'正在发送…':'正在登录…';authNotice('');
  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword')?.value;
  try{
  let result;
@@ -26,10 +27,16 @@ async function submitAuth(event,mode){
  else if(mode==='reset')result=await authClient.auth.resetPasswordForEmail(email,{redirectTo:returnUrl});
  else result=await authClient.auth.signInWithPassword({email,password});
  if(result.error)throw result.error;
- if(mode==='signup')authNotice('请查收邮箱验证邮件，验证后回来登录。若已有账号，请直接登录。');
+ if(mode==='signup'){signupEmail=email;signupResendAt=Date.now()+60000;showSignupConfirmation();}
  if(mode==='reset')authNotice('若该邮箱已注册，重置邮件将发送至你的邮箱。');
- }catch(e){authNotice(e.message||'暂时无法连接，请稍后重试',true)}finally{if(button.isConnected)button.disabled=false;}
+ }catch(e){authNotice(friendlyAuthError(e),true);document.getElementById('authNotice')?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}finally{if(button.isConnected){button.disabled=false;button.textContent=label}}
 }
+function friendlyAuthError(error){const text=String(error?.message||'');if(/invalid login credentials/i.test(text))return '邮箱或密码不正确，请核对后重试。';if(/email not confirmed/i.test(text))return '请先点击邮箱里的验证链接，再回来登录。';if(/rate limit|too many|security purposes/i.test(text))return '操作有些频繁，请稍等一分钟再试。';if(/error sending confirmation/i.test(text))return '验证邮件暂时未能发送，请稍后重试。';if(/fetch|network|timeout/i.test(text))return '连接暂时中断，请检查网络后重试。';return text||'暂时无法连接，请稍后重试。'}
+function showSignupConfirmation(){
+ app.innerHTML=`<section class="panel authPanel signupConfirmation"><h2>验证邮箱，开始学习</h2><p>请打开 <strong>${esc(signupEmail)}</strong> 的验证邮件，点击里面的链接。</p><p class="meta">没看到？也检查一下垃圾邮件。若已有账号，直接登录即可。</p><button class="primary" onclick="showAuth('login')">已验证，去登录</button><button class="linkbtn" id="signupResend" onclick="resendSignup()">重新发送验证邮件</button><button class="linkbtn" onclick="showAuth('signup')">邮箱填错了？重新填写</button><div id="authNotice" role="status" class="notice"></div></section>`;
+ window.scrollTo?.({top:0,behavior:'smooth'});
+}
+async function resendSignup(){const button=document.getElementById('signupResend');if(!signupEmail||!button)return;if(Date.now()<signupResendAt)return authNotice('请等待 '+Math.ceil((signupResendAt-Date.now())/1000)+' 秒后再发送。');button.disabled=true;try{const {error}=await authClient.auth.resend({type:'signup',email:signupEmail,options:{emailRedirectTo:returnUrl}});if(error)throw error;signupResendAt=Date.now()+60000;authNotice('验证邮件已重新发送，请查收。')}catch(e){authNotice(friendlyAuthError(e),true)}finally{if(button.isConnected)button.disabled=false}}
 function showPasswordReset(){
  app.innerHTML='<section class="panel authPanel"><h2>设置新密码</h2><form onsubmit="updatePassword(event)"><label for="newPassword">新密码</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required><br><br><button class="primary">保存新密码</button></form><div id="authNotice" class="notice" role="status"></div></section>';
 }
@@ -77,6 +84,7 @@ function profileFields(data=null){return ` <label for="profileUsername">用户�
 `;}
 function readProfileFields(){const value=id=>document.getElementById(id).value.trim();return {username:value('profileUsername'),school:value('profileSchool')||'Not provided',major:value('profileMajor')||'Not provided',degree:value('profileDegree')||'Other'};}
 function showProfile(required=false){
+ document.body?.classList?.remove('assistantMode');
  if(!session)return showAuth();window._view={type:'profile',required:Boolean(required)};
  app.innerHTML=`<div class="sectionHead">${required?'':'<button class="back" onclick="showHome()">← 返回</button>'}<div><h1>${required?'欢迎使用奇点':'我的资料'}</h1><div class="meta">${required?'首次登录，请先完成个人资料。':'可随时更新用户名、学校和专业。'}</div></div></div>
  <section class="panel authPanel"><form onsubmit="saveProfile(event,${required})">
@@ -107,6 +115,7 @@ async function saveProfile(event,required=false){
  }catch(e){const n=document.getElementById('profileNotice');if(n){n.textContent=e.message?.includes('duplicate')?'这个用户名已被使用，请换一个。':'保存失败：'+(e.message||'请稍后重试');n.className='notice danger'}}finally{if(button.isConnected)button.disabled=false;}
 }
 function showCourses(){
+ document.body?.classList?.remove('assistantMode');
  if(!session)return showAuth();window._view={type:'courses'};
  app.innerHTML=`<div class="sectionHead"><button class="back" onclick="showHome()">← 返回</button><h1>自定义课程</h1></div><section class="panel"><p class="meta">按需添加课程，即可自定义课程数量。每门课支持 1–52 周；删除课程后可恢复，词汇与进度会保留。</p>
  <form onsubmit="createCourse(event)"><div class="row"><input id="courseName" aria-label="课程名称" placeholder="课程名称" maxlength="120" required><input id="courseCode" aria-label="课程简称" placeholder="课程简称（可选）" maxlength="40"><input id="courseWeeks" aria-label="周数" type="number" min="1" max="52" value="13" required></div><br><button class="primary">添加课程</button></form><div id="notice" class="notice" role="status"></div>

@@ -128,7 +128,12 @@ export async function handleLearning({data,db,model,user,auth,defer}){
  let selected=resolveLearningCourse(data.scope,text,courses),thread;
  if(data.thread){if(!UUID.test(data.thread))fail(400,'对话无效。');[thread]=await db(TABLE+'?id=eq.'+data.thread+owner);if(!thread)fail(404,'对话不存在或不属于当前账号。');if(data.scope&&data.scope!=='all'&&thread.course_id!==data.scope)fail(400,'课程范围已改变，请开始新对话。');selected=thread.course_id?courses.find(c=>c.id===thread.course_id):selected;if(thread.course_id&&!selected)fail(400,'这门课程已归档，请选择其他课程。')}
  if(!text&&!['learning_answer','learning_review','learning_task','learning_quiz_state'].includes(data.action))fail(400,'先告诉莱克想学什么。');
- if(data.action!=='chat'&&!thread)fail(400,'请先打开学习对话。');
+ if(data.action!=='chat'&&!thread&&data.action!=='learning_review')fail(400,'请先打开学习对话。');
+ if(data.action==='learning_review'&&!thread){
+  if(!selected||!UUID.test(data.review||''))fail(400,'请先选择复习课程。');
+  const [review]=await db('/rest/v1/user_learning_reviews?id=eq.'+data.review+owner);
+  if(!review||review.course_id!==selected.id)fail(404,'没有找到当前课程的复习项目。');
+ }
  if(thread&&data.action==='chat'){
   const pending=questionPending(thread.messages);if(pending&&pending.question.type==='choice'){const answer=parseChoice(text,pending.question);if(answer!==null)data={...data,action:'learning_answer',question:pending.question.id,answer}}
   else if(pending&&pending.question.type==='short'&&text&&!/^(?:请|帮我|再|先|我想|我要|能不能|可以|给我|解释|讲解|提示|不懂|换个|跳过|暂停|总结|安排|复习|为什么|怎么|如何|explain|hint|skip|summar|plan|review)|出.{0,8}题|换.{0,4}例子/i.test(text))data={...data,action:'learning_answer',question:pending.question.id,answer:text};
@@ -210,7 +215,7 @@ export async function handleLearning({data,db,model,user,auth,defer}){
   if(!excerpts.length&&['explain','summary'].includes(answer.kind))answer.content='通用讲解：目前没有这部分的可读课件原文，以下内容不是对你课件的总结。\n\n'+answer.content;
   if(!selected&&answer.quiz)fail(422,'先选择一门课程，再根据课件出题。');
   if(selected&&answer.action.type==='start_study')answer.action.course=selected.code||selected.name;
-  if(answer.quiz)for(const m of messages)if(m.quiz)m.quiz.paused=true;
+  if(answer.quiz||['explain','summary','plan'].includes(answer.kind))for(const m of messages)if(m.quiz)m.quiz.paused=true;
   messages.push({id:crypto.randomUUID(),role:'assistant',created_at:now(),...answer});
   const saved=await commit();if(selected)deferBank(defer,{db,model,user,auth,courses:[selected],sources});return {thread:saved,course_id:thread.course_id,reply:answer.content,action:answer.action};
  }catch(error){await db(TABLE+'?id=eq.'+thread.id+owner+'&lock_owner=eq.'+lock,'PATCH',{lock_owner:null,locked_until:'-infinity'}).catch(()=>{});error.thread_id=thread.id;throw error}
