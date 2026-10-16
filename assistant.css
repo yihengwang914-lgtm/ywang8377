@@ -7,3 +7,5 @@
 .optionalEducation{margin-top:20px}.optionalEducation summary{cursor:pointer;font-size:13px;color:var(--muted);margin-bottom:18px}
 
 .finishedReport{margin-top:20px;font-size:13px;color:var(--green)}.finishedReport>summary{cursor:pointer;line-height:1.7}.finishedReport summary span{font-size:12px;color:var(--muted);margin-left:8px}.fileList>summary{cursor:pointer;font-size:13px;color:var(--muted);padding:10px 0}
+.assistantChoices{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}.assistantChoices button{min-height:44px;text-align:left}
+@media(max-width:600px){.assistantChoices{display:grid;grid-template-columns:1fr}.assistantChoices button{width:100%;text-align:center}}
