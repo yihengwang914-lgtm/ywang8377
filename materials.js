@@ -15,6 +15,22 @@ function showAssistant(){
 }
 function selectMaterials(files){if(materialBusy)return;materialSelection=Array.from(files);const el=document.getElementById('materialAttachments');if(el)el.innerHTML=materialSelection.map(f=>`<span>${esc(f.name)}</span>`).join('');const button=document.getElementById('materialSend');if(button)button.textContent='同意并整理'}
 function materialStatus(message){materialMessage=message;const el=document.querySelector('.assistantBubble');if(el)el.textContent=message;renderMaterialProgress()}
+function showAssistantChoices(message,choices){
+ materialStatus(message);const area=document.getElementById('materialProgress');if(!area)return;area.replaceChildren();const wrap=document.createElement('div');wrap.className='assistantChoices';
+ for(const choice of choices){const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent=choice.label;button.onclick=choice.action;wrap.append(button)}area.append(wrap)
+}
+function showAssistantHelp(){
+ showAssistantChoices('可以直接告诉我想学什么，也可以先选一个操作。',[{label:'快速筛选',action:showStudyFilter},{label:'开始今日任务',action:()=>startDailyStudy()},{label:'只复习生词',action:()=>startDailyStudy(true)},{label:'我的学习资料',action:showMaterialsLibrary}])
+}
+function showStudyFilter(){
+ const available=courseRows.filter(course=>!course.archived&&!course.is_shared_template&&words.some(word=>word.course===course.id));
+ if(!available.length)return showAssistantChoices('还没有可筛选的词。先上传课件或导入词表，我会自动整理。',[{label:'查看上传方法',action:showMaterialsHelp},{label:'导入已有词表',action:showQuickWordImport}]);
+ showAssistantChoices('可以。先选一门课程，接着可以选择周次。',[...available.map(course=>({label:course.code?course.code+' · '+course.name:course.name,action:()=>showStudyFilterWeeks(course.id)})),{label:'全部课程 · 今日 20 词',action:()=>startDailyStudy()},{label:'只复习生词',action:()=>startDailyStudy(true)}])
+}
+function showStudyFilterWeeks(courseId){
+ const course=courseRows.find(item=>item.id===courseId);if(!course)return showStudyFilter();const courseWords=words.filter(word=>word.course===courseId),weeks=[...new Set(courseWords.map(word=>Number(word.week)).filter(week=>Number.isFinite(week)&&week>0))].sort((a,b)=>a-b);
+ showAssistantChoices('已选择 '+(course.code||course.name)+'。请选择学习范围。',[{label:'全部周次 · 20 词',action:()=>startDailyStudy(false,{course:courseId,count:20})},...weeks.map(week=>({label:'Week '+week+' · '+courseWords.filter(word=>Number(word.week)===week).length+' 词',action:()=>startDailyStudy(false,{course:courseId,week,count:20})})),{label:'← 返回选课程',action:showStudyFilter}])
+}
 function obviousReadingMaterial(path){const name=String(path||'');return /(^|[\\/_ .-])(readings?|articles?|papers?|journals?|books?|chapters?|references?|bibliography|supplementary|commentary|report|课外阅读|阅读材料|参考资料|参考文献|论文|书籍|报告)([\\/_ .-]|$)/i.test(name)||/general comment\s+no\.?|instructions?\s+for|group\s+list|\([12]\d{3}\)/i.test(name)}
 function renderMaterialProgress(){
  const el=document.getElementById('materialProgress');if(!el||!materialState)return;const state=materialState,done=state.files.filter(f=>f.result).length,failed=state.files.filter(f=>f.error).length,checked=state.files.filter(f=>f.text||f.error||f.prefilterKind).length,skipped=state.files.filter(f=>f.plan?.include===false).length,included=state.files.filter(f=>!f.plan||f.plan.include!==false).length,reading=state.stage==='reading',headline=reading?'正在检查资料 · '+checked+' / '+state.files.length+' 份':(state.stage==='finished'?'资料整理完成':materialBusy?'莱克正在整理':'资料已保留')+' · '+done+' / '+included+' 份课件'+(skipped?' · 已跳过 '+skipped+' 份非课件':'');
@@ -23,7 +39,7 @@ function renderMaterialProgress(){
  else if(words.length&&materialBusy&&!document.querySelector('.dailyActions'))el.insertAdjacentHTML('beforeend','<button class="primary" onclick="startDailyStudy()">先背已经整理好的词</button>');
 }
 async function submitMaterials(event){
- event.preventDefault();if(materialBusy)return;const hint=document.getElementById('materialPrompt').value.trim();if(!materialSelection.length){if(/[|\t]/.test(hint)){try{materialDraftTerms=parseOwnTerms(hint);materialStatus('已识别 '+materialDraftTerms.length+' 个词。直接导入，不调用 AI。');document.getElementById('materialProgress').innerHTML='<button class="primary" onclick="importQuickWords()">确认导入词表</button>';return}catch(e){return materialStatus(e.message)}}if(/生词|错词|背|学|复习|开始|\d{3,5}/.test(hint))return startStudyRequest(hint);if(/资料|课程|词库/.test(hint))return showMaterialsLibrary();return materialStatus('你可以直接上传课件或 ZIP，也可以说“开始背词”或“复习生词”。')}
+ event.preventDefault();if(materialBusy)return;const hint=document.getElementById('materialPrompt').value.trim();if(!materialSelection.length){if(!hint)return showAssistantHelp();if(/[|\t]/.test(hint)){try{materialDraftTerms=parseOwnTerms(hint);materialStatus('已识别 '+materialDraftTerms.length+' 个词。直接导入，不调用 AI。');document.getElementById('materialProgress').innerHTML='<button class="primary" onclick="importQuickWords()">确认导入词表</button>';return}catch(e){return materialStatus(e.message)}}if(/快速筛选|筛选|挑选|选课|按课程|按周|找词/.test(hint))return showStudyFilter();if(/生词|错词|背|学|复习|开始|\d{3,5}/.test(hint))return startStudyRequest(hint);if(/资料|课程|词库/.test(hint))return showMaterialsLibrary();return showAssistantHelp()}
  if(materialState&&materialState.stage!=='finished'){materialStatus('先点“继续整理”完成上一批资料，或在进度下方结束这一批，再上传新的课件。');return}
  const epoch=accountEpoch;materialBusy=true;materialStatus('正在打开资料包，检查文件和重复内容…');
  try{const {files,ignored,duplicates}=await unpackMaterials(materialSelection);if(epoch!==accountEpoch)return;for(const file of files)if(obviousReadingMaterial(file.path)){file.prefilterKind='reading';file.status='阅读材料，已先跳过'}const started=await materialRequest({action:'start',files:files.map(f=>({name:f.path,size:f.file.size}))});if(epoch!==accountEpoch)return;materialState={uid:session.user.id,batch:started.batch,started:Date.now(),stage:'reading',files,ignored,duplicates,hint};materialSelection=[];await saveMaterialState();materialBusy=false;await continueMaterials()}catch(e){if(epoch!==accountEpoch)return;materialBusy=false;materialStatus(e.message);showAssistant()}
