@@ -2,3 +2,6 @@
 -- from the account menu without being interrupted on their next visit.
 alter table public.user_profiles add column welcome_completed_at timestamptz;
 update public.user_profiles set welcome_completed_at=now();
+
+-- Profile edits use a column allowlist; keep the new permission equally narrow.
+grant update(welcome_completed_at) on public.user_profiles to authenticated;
