@@ -4,11 +4,12 @@
 
 上传课堂课件或 Canvas ZIP 后，在同一段对话里让莱克讲解知识点、整理重点、出题、批改并安排复习。每个账号和课程的数据隔离；选择题答案由服务器保存，提交前不下发给浏览器。讲解与批改附可核对的提取原文。旧词库、背词模式和进度继续保留。
 
-当前实现：`learning-ui.js`、`materials.js`、`assistant.css` 和 `supabase/functions/courselex-glm-import/`。数据库增量见 `supabase/learning_assistant.sql`，部署、旧课件重新上传和恢复说明见 [MIGRATION.md](MIGRATION.md)。免费容量及 AI 预算说明见 [CAPACITY.md](CAPACITY.md)。
+当前实现：`learning-ui.js`、`materials.js`、`assistant.css`、`studio.css` 和 `supabase/functions/courselex-glm-import/`。数据库增量见 `supabase/learning_assistant.sql`，部署、旧课件重新上传和恢复说明见 [MIGRATION.md](MIGRATION.md)。免费容量及 AI 预算说明见 [CAPACITY.md](CAPACITY.md)。
 
 - 单元与回归：`node --test tests/*.test.mjs`。
 - 数据隔离验收：`tests/learning-security.sql`，事务最终回滚，不留下测试数据。
 - 人工全流程验收：`scripts/test-learning-live.mjs` 和 `scripts/test-learning-browser.mjs`，使用独立 QA 账号，仅从 `/tmp` 读取临时测试会话。
+- 界面验收：`node scripts/test-studio-ui.mjs`，使用固定教学示例检查 320/390/768/1440 像素宽度与对话卡片，不使用真实账号或付费模型。
 - 用户指南与产品介绍：网站根目录两份 PDF；生成脚本 `scripts/create_learning_pdfs.py`。
 - DeepTutor 提示规则复用与许可：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 

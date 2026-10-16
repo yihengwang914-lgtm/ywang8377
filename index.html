@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>奇点 CourseLex AI · 每一个知识点，都是新的起点。</title>
 <meta name="description" content="奇点 CourseLex AI：上传课堂课件，让莱克讲解知识点、整理重点、出题批改并安排复习。每一个知识点，都是新的起点。">
-<meta name="theme-color" content="#f5f2e8">
-<link rel="manifest" href="manifest.webmanifest?v=3.5">
+<meta name="theme-color" content="#f5f7f6">
+<link rel="manifest" href="manifest.webmanifest?v=3.6">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon-v2.png?v=3.5">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-v2.png?v=3.5">
 <style>
@@ -35,23 +35,25 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 <link rel="stylesheet" href="responsive.css?v=3.6">
 <link rel="stylesheet" href="brand.css?v=3.4">
 <link rel="stylesheet" href="assistant.css?v=6.0">
+<link rel="stylesheet" href="studio.css?v=1.0">
 </head>
 <body>
-<header>
+<header class="siteHeader">
   <a class="brand brandLockup" href="/" onclick="showHome();return false" aria-label="奇点 CourseLex AI 首页"><img src="assets/brand/courselex-mark.png" alt="" width="44" height="44"><span><strong>奇点</strong><small>CourseLex AI</small></span></a>
   <div class="top" id="userNav" hidden>
     <nav class="studyNav" aria-label="学习导航"><button class="active" onclick="navigateStudy('home',this)">首页</button><button onclick="navigateStudy('manager',this)">资料</button><button onclick="navigateStudy('unknown',this)">生词</button><button onclick="navigateStudy('known',this)">熟词</button></nav>
     <button id="syncState" class="sync compactSync off" onclick="syncNow()">未同步</button>
     <details class="navMenu"><summary>账户 <span aria-hidden="true">⌄</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
-    <a class="linkbtn" href="courselex-user-guide.pdf?v=7.0" target="_blank" rel="noopener">用户指南</a>
+    <a class="linkbtn" href="courselex-user-guide.pdf?v=7.1" target="_blank" rel="noopener">用户指南</a>
     <button class="linkbtn" onclick="showProfile()">我的资料</button>
+    <button class="linkbtn" onclick="showInstall()">添加到桌面</button>
     <button class="linkbtn" onclick="logout()">退出</button>
     <a class="linkbtn" id="adminLink" href="admin.html" hidden>管理后台</a>
     </div></details>
   </div>
 </header>
 <main id="app"></main>
-<footer class="signature" style="margin:0;padding:0 0 100px"><button class="linkbtn" onclick="showInstall()">添加到桌面</button><p>奇点 · CourseLex AI<br>从未知出发，向无限探索</p></footer>
+<footer class="signature siteFooter"><p>每一个知识点，都是新的起点。</p></footer>
 <dialog id="installDialog"><h2>添加奇点到桌面</h2><p id="installInstructions"></p><p class="meta">桌面快捷入口使用同一账号与云端进度，使用时需要联网。</p><form method="dialog"><button class="secondary">知道了</button></form></dialog>
 <script src="vendor/supabase-2.57.4.js"></script>
 <script>
@@ -240,7 +242,7 @@ function renderCurrent(){
 <script src="courseware-reader.js?v=4.6"></script>
 <script src="upload.js?v=4.1"></script>
 <script src="materials.js?v=7.0"></script>
-<script src="learning-ui.js?v=1.0"></script>
+<script src="learning-ui.js?v=1.1"></script>
 <script src="own-ai.js?v=3.9"></script>
 <script src="education-catalog.js?v=3.8"></script>
 <script src="shared-library.js?v=3.6"></script>

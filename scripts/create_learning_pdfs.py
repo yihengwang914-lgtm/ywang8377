@@ -1,6 +1,16 @@
 from create_assistant_pdfs import brand
 from create_courselex_pdfs import *
 
+# Match the live learning workspace's cool white and green palette.
+BG = HexColor('#F5F7F6')
+INK = HexColor('#19352C')
+MUTED = HexColor('#65766E')
+GREEN = HexColor('#167454')
+
+def set_bg(c, width, height, color=BG):
+    c.setFillColor(color)
+    c.rect(0, 0, width, height, fill=1, stroke=0)
+
 def phone(c, name, x, y, width, height):
     path=ROOT/'assets/pdf'/name
     if not path.exists(): raise FileNotFoundError(path)
