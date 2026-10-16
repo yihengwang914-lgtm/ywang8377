@@ -38,3 +38,33 @@ Old import functions and teacher-demo assets are retained. The legacy personal i
 ## Recovery
 
 Frontend rollback must not reopen anonymous access to the archive. Keep the new database tables and their data. A rollback to the old unsigned frontend would have no cloud access; restore the account-capable UI instead, or provide a separately authenticated owner view. No destructive down migration is provided. Existing student data must be exported before any later schema removal.
+
+
+## Conversation learning rollout - 2026-10-16
+
+Apply `supabase/learning_assistant.sql` before deploying the new handler. It adds
+`user_learning_sources`, `user_learning_chunks`, `user_learning_threads` and
+`user_learning_reviews`; it does not replace or rewrite vocabulary or progress.
+Import-job creation retains extracted teaching text before the temporary job is
+cleared. Source hashes deduplicate identical text within the same course. A locked
+per-user quota limits retained teaching text to 2,000,000 characters. Existing
+cleared originals cannot be reconstructed from word lists: users re-upload those
+lectures to enable grounded explanations; their old words remain usable.
+
+Source reads use the user's bearer token and RLS. Thread/quiz answers and review
+state are server-only. The handler validates ownership and course scope on every
+operation; one locked, atomic commit saves grading and spaced-review state.
+Client-supplied correct answers or grades are never accepted. Retries reuse request
+IDs. Pausing a quiz does not mark any concept mastered. Threads and review state
+are stored in the cloud, with only the last-open thread ID stored locally.
+
+Deploy the function with all five files, including `learning.js`, and JWT
+verification enabled. Publish frontend assets together. Rollback the UI/handler if
+needed, retaining all new tables and sources. No destructive rollback is supplied.
+
+Acceptance: 67 automated tests; rollback-only database isolation tests in
+`tests/learning-security.sql`; actual paid-model explanation, summary, 3-question
+quiz, choice/short-answer feedback, review plan and recovery; browser checks at
+320/390/768/1440 pixels; mixed PDF/PPTX/DOCX ZIP with duplicate and reading exclusion.
+Manual integration scripts use disposable QA account/session files under `/tmp`,
+never production credentials or real students' coursework.

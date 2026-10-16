@@ -21,8 +21,8 @@ function refreshUploadState(){
 }
 async function coursewareRequest(body){
  const epoch=accountEpoch;const {data:{session:active}}=await authClient.auth.getSession();if(!active||!session||active.user.id!==session.user.id)throw Error('请重新登录。');
- let response;try{response=await fetch(COURSEWARE_ENDPOINT,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+active.access_token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(75000)})}catch{throw Error('连接中断；已创建的任务可稍后继续检查。')}
- const data=await response.json();if(epoch!==accountEpoch)throw Error('账号已切换。');if(!response.ok){const e=Error(data.error||'整理失败。');e.status=response.status;e.retryable=data.retryable;throw e}return data;
+ let response;try{response=await fetch(COURSEWARE_ENDPOINT,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+active.access_token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(body.action==='chat'||body.action==='learning_answer'?150000:75000)})}catch{throw Error('连接中断；已创建的任务可稍后继续检查。')}
+ const data=await response.json();if(epoch!==accountEpoch)throw Error('账号已切换。');if(!response.ok){const e=Error(data.error||'整理失败。');e.status=response.status;e.retryable=data.retryable;e.thread_id=data.thread_id;throw e}return data;
 }
 async function checkUploadService(){
  const epoch=accountEpoch;try{const r=await fetch(COURSEWARE_ENDPOINT,{headers:{apikey:SUPABASE_KEY},signal:AbortSignal.timeout(15000)});const data=await r.json();if(epoch!==accountEpoch)return;uploadConfigured=r.ok&&data.configured===true}catch{if(epoch!==accountEpoch)return;uploadConfigured=false}

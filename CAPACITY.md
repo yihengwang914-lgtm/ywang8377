@@ -1,6 +1,6 @@
 # CourseLex AI 免费容量估算
 
-核对日期：2026-10-14。
+旧版词库估算日期：2026-10-14。下列 200–300 人建议仅适用于词库版；AI 学习版本请使用以下新估算。
 
 ## 当前状态
 
@@ -30,3 +30,17 @@
 | AI 整理 | “用自己的 AI 整理”不消耗站长 API；“API 自动整理”可能产生模型费用 | 免费试用期应继续把“自己的 AI”作为主要入口，并控制共享上传口令 |
 
 官方参考：[Supabase Billing](https://supabase.com/docs/guides/platform/billing-on-supabase)、[Supabase Edge Functions Pricing](https://supabase.com/docs/guides/functions/pricing)、[GitHub Pages Limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)、[Brevo Free Plan Limits](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan)。
+
+
+## 2026-10-16：AI 学习版增量与试用建议
+
+本次检查数据库约 16.34 MB，原始归档仍为 1,736 行。新增课件原文、出处片段、私人对话、题目和复习记录后，不能再按“只存 1,736 个词”的旧估算直接开放几百名重度用户。
+
+- Supabase 官方当前 Free 仍提供 500 MB 数据库、5 GB 普通出口流量、50,000 MAU；来源：https://supabase.com/pricing 。本次没有升级平台套餐。
+- 不存原始二进制课件文件，但会保留提取后的文字。每账号最多 2,000,000 字符；纯英文约 2 MB、汉字最多约 6 MB，另加索引和结构开销。实际 PostgreSQL 压缩会影响占用。
+- 每账号最多 100 个学习对话，每个最多 120 条消息、500 KB JSON；这是防滥用上限，不是建议每人用满的存储配额。复习记录与词库另占空间。
+- 建议先邀请 **20–30 名真实学生**，连续观察上传文字量、每人实际数据库占用、模型费用和月度出口流量，再扩大人数。这是保守试用建议，不是技术最大承载量或并发保证。
+- 模型调用仍受站长已授权的 **总计 ¥20 测试预算**约束，不自动充值。选择题批改、重看历史和复习旧题不需要新模型调用；简答批改、讲解和新出题会产生用量。
+- 新增全文片段检索使用现有 PostgreSQL，不增加嵌入模型或向量数据库费用。中文问题可借助本人的中英词表检索英文课件。
+
+达到数据库 70% 或普通出口流量 70% 时，应先测量实际使用并导出备份，再决定是否压缩历史、调整保留策略或扩大试用；不能自动删除学生资料来腾空间。

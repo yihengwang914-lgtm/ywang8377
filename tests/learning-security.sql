@@ -1,0 +1,32 @@
+begin;
+do $$ declare u uuid:=gen_random_uuid();v uuid:=gen_random_uuid();c uuid:=gen_random_uuid();d uuid:=gen_random_uuid();job uuid;sid uuid;thread uuid:=gen_random_uuid();lock uuid:=gen_random_uuid();
+begin
+ insert into auth.users(id,email,email_confirmed_at) values(u,'learning-a@example.invalid',now()),(v,'learning-b@example.invalid',now());
+ insert into public.user_courses(id,user_id,name,weeks) values(c,u,'Learning fixture A',2),(d,v,'Learning fixture B',2);
+ insert into public.user_courseware_jobs(user_id,course,week,filename,parts) values(u,c,1,'privacy.pdf','["Privacy protects personal information. Consent must be informed and freely given."]') returning id into job;
+ insert into public.user_courseware_jobs(user_id,course,week,filename,parts) values(u,c,1,'privacy-again.pdf','["Privacy protects personal information. Consent must be informed and freely given."]');
+ assert(select count(*)=1 from public.user_learning_sources where user_id=u);
+ insert into public.user_courseware_jobs(user_id,course,week,filename,parts) values(v,d,1,'foreign.pdf','["Foreign course content must never appear for another learner."]');
+ select id into sid from public.user_learning_sources where user_id=u;
+ update public.user_courseware_jobs set parts='["已清理"]' where id=job;
+ assert exists(select 1 from public.user_learning_chunks where source_id=sid and content like '%Consent%');
+ insert into public.user_learning_threads(id,user_id,course_id,messages,lock_owner,locked_until) values(thread,u,c,'[]',lock,now()+interval '2 minutes');
+ assert public.commit_courselex_learning(thread,u,lock,'[{"role":"user","content":"test"}]','[]');
+ assert not public.commit_courselex_learning(thread,u,lock,'[]','[]');
+ perform set_config('request.jwt.claims',json_build_object('sub',u,'role','authenticated')::text,true);
+ perform set_config('courselex.qa.course',c::text,true);perform set_config('courselex.qa.foreign',d::text,true);
+end $$;
+set local role authenticated;
+do $$ declare c uuid:=current_setting('courselex.qa.course')::uuid; d uuid:=current_setting('courselex.qa.foreign')::uuid;
+begin
+ assert(select count(*)=1 from public.user_learning_sources);
+ assert(select count(*)=1 from public.search_courselex_learning(c,'consent',0,false));
+ assert(select count(*)=0 from public.search_courselex_learning(d,'foreign',0,false));
+ assert not has_table_privilege('authenticated','public.user_learning_threads','select');
+ assert not has_table_privilege('authenticated','public.user_learning_reviews','insert');
+ assert not has_function_privilege('authenticated','public.commit_courselex_learning(uuid,uuid,uuid,jsonb,jsonb)','execute');
+end $$;
+reset role;
+set local role anon;
+do $$ begin assert not has_table_privilege('anon','public.user_learning_sources','select');end $$;
+rollback;
