@@ -8,13 +8,14 @@ const SCHOOL_OPTIONS=[
 let schoolSuggestionMatches=[];
 function authNotice(text,bad=false){const el=document.getElementById('authNotice');if(el){el.textContent=text;el.className='notice'+(bad?' danger':'')}}
 function showAuth(mode='login'){
+ document.body?.classList?.remove('assistantMode');
  document.getElementById('userNav').hidden=true;window._view={type:'auth'};
  const signup=mode==='signup',reset=mode==='reset';
- app.innerHTML=`<section class="hero"><h1>每一个知识点，<br>都是新的起点。</h1><p>上传 Canvas 的 ZIP 或 PDF / PPT，莱克自动整理你的课堂词汇。</p></section><section class="panel authPanel"><h2>${signup?'邮箱注册':reset?'重置密码':'登录奇点'}</h2><form onsubmit="submitAuth(event,'${mode}')">
+ app.innerHTML=`<div class="authLayout"><section class="hero authHero"><div class="authEyebrow">莱克 Lex · AI 学习助理</div><h1>每一个知识点，<br>都是新的起点。</h1><p>上传课堂课件，和莱克一起理解知识、练习巩固、安排复习。</p></section><section class="panel authPanel"><h2>${signup?'邮箱注册':reset?'重置密码':'登录奇点'}</h2><form onsubmit="submitAuth(event,'${mode}')">
  <label for="authEmail">邮箱</label><input id="authEmail" type="email" autocomplete="email" required maxlength="254">
  ${reset?'':`<label for="authPassword">密码</label><input id="authPassword" type="password" autocomplete="${signup?'new-password':'current-password'}" minlength="8" required>`}
- ${signup?'<p class="meta">密码至少 8 位。验证邮箱后即可保存学习进度。</p>'+registrationProfileFields():''}<br><br><button id="authSubmit" class="primary">${signup?'注册':reset?'发送重置邮件':'登录'}</button></form>
- <div id="authNotice" role="status" class="notice"></div><div class="uploadActions"><button class="linkbtn" onclick="showAuth('${signup||reset?'login':'signup'}')">${signup||reset?'返回登录':'创建账号'}</button>${!signup&&!reset?'<button class="linkbtn" onclick="showAuth(\'reset\')">忘记密码</button>':''}</div></section>`;
+ ${signup?'<p class="meta">密码至少 8 位。验证邮箱后即可保存学习进度。</p>'+registrationProfileFields():''}<button id="authSubmit" class="primary">${signup?'注册':reset?'发送重置邮件':'登录'}</button></form>
+ <div id="authNotice" role="status" class="notice"></div><div class="uploadActions"><button class="linkbtn" onclick="showAuth('${signup||reset?'login':'signup'}')">${signup||reset?'返回登录':'创建账号'}</button>${!signup&&!reset?'<button class="linkbtn" onclick="showAuth(\'reset\')">忘记密码</button>':''}</div></section></div>`;
 }
 async function submitAuth(event,mode){
  event.preventDefault();const button=document.getElementById('authSubmit');button.disabled=true;
