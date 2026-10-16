@@ -62,7 +62,7 @@ Deploy the function with all five files, including `learning.js`, and JWT
 verification enabled. Publish frontend assets together. Rollback the UI/handler if
 needed, retaining all new tables and sources. No destructive rollback is supplied.
 
-Acceptance: 67 automated tests; rollback-only database isolation tests in
+Acceptance: 68 automated tests; rollback-only database isolation tests in
 `tests/learning-security.sql`; actual paid-model explanation, summary, 3-question
 quiz, choice/short-answer feedback, review plan and recovery; browser checks at
 320/390/768/1440 pixels; mixed PDF/PPTX/DOCX ZIP with duplicate and reading exclusion.

@@ -59,7 +59,7 @@ function publicMessage(m){
 }
 export function publicLearningThread(t){return {id:t.id,course_id:t.course_id,title:t.title,messages:t.messages.map(publicMessage),pending:Boolean(t.lock_owner)&&Date.parse(t.locked_until)>Date.now(),updated_at:t.updated_at}}
 function questionPending(messages){for(const m of [...messages].reverse())if(m.quiz&&!m.quiz.paused){const question=m.quiz.questions.find(q=>!q.result);if(question)return {message:m,question};}return null}
-function parseChoice(text,q){const t=String(text).trim(),label=t.match(/^(?:我选|选|答案[是为：:]?|选择)?\s*([A-Da-d1-4])(?:[.。、\s]|$)/)?.[1];if(label)return /[1-4]/.test(label)?Number(label)-1:label.toUpperCase().charCodeAt(0)-65;const index=q.options.findIndex(o=>norm(o)===norm(t));return index>=0?index:null}
+function parseChoice(text,q){const t=String(text).trim(),label=t.match(/^(?:我(?:选择|选|认为是)|选择|选|答案(?:是|为)?[:：]?)?\s*([A-Da-d1-4])(?:[.。、\s]|$)/)?.[1];if(label)return /[1-4]/.test(label)?Number(label)-1:label.toUpperCase().charCodeAt(0)-65;const ordinal=t.match(/^(?:我)?(?:选择|选)(?:第)?([一二三四])(?:个|项)?[。！]?$/)?.[1];if(ordinal)return '一二三四'.indexOf(ordinal);const index=q.options.findIndex(o=>norm(o)===norm(t));return index>=0?index:null}
 
 export async function handleLearning({data,db,model,user,auth}){
  const owner='&user_id=eq.'+user.id;
@@ -79,7 +79,7 @@ export async function handleLearning({data,db,model,user,auth}){
  if(data.action!=='chat'&&!thread)fail(400,'请先打开学习对话。');
  if(thread&&data.action==='chat'){
   const pending=questionPending(thread.messages);if(pending&&pending.question.type==='choice'){const answer=parseChoice(text,pending.question);if(answer!==null)data={...data,action:'learning_answer',question:pending.question.id,answer}}
-  else if(pending&&pending.question.type==='short'&&text&&!/解释|讲解|提示|不懂|换|跳过|总结|计划|explain|hint|skip|summar/i.test(text))data={...data,action:'learning_answer',question:pending.question.id,answer:text};
+  else if(pending&&pending.question.type==='short'&&text&&!/^(?:请|帮我|再|先|我想|我要|能不能|可以|给我|解释|讲解|提示|不懂|换个|跳过|暂停|总结|安排|复习|为什么|怎么|如何|explain|hint|skip|summar|plan|review)|出.{0,8}题|换.{0,4}例子/i.test(text))data={...data,action:'learning_answer',question:pending.question.id,answer:text};
  }
  if(!thread){
   if(UUID.test(data.request_id||'')){const [prior]=await db(TABLE+'?id=eq.'+data.request_id+owner);if(prior)thread=prior}
