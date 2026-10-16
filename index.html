@@ -151,6 +151,7 @@ function startStudy(mode){window.dailyStudy=false;
 function showQuestion(){document.body?.classList.remove('assistantMode');
  current=queue[qIndex];
  if(!current){if(window.dailyStudy){app.innerHTML=`<section class="study"><h1>这一轮，完成了。</h1><p>学过 ${queue.length} 个词，已根据答题情况安排下次复习。</p><button class="primary" onclick="showHome()">回到首页</button></section>`;window._view={type:'studyComplete'};return}showWeek(currentCourse,currentWeek);return}if(window.dailyStudy){currentCourse=current.course;currentWeek=current.week;}
+ window._view={type:'study'};
  if(currentMode==="choice"){
    const distractors=buildDistractors(current);
    if(distractors.length<3){currentMode='recognition';return showQuestion();}
