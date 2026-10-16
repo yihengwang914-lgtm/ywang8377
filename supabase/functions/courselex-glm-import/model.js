@@ -8,14 +8,18 @@ export function usageCost(usage,vision){
  // RMB micro-units; conservatively charge the highest tier, never cache discounts.
  return Math.ceil(input*(vision?0.3:0.5)+output*3);
 }
-export async function callModel({db,fetcher,key,messages,user,vision=false,paid=false}){
- const model=modelName(vision,paid),lease=crypto.randomUUID();
- if(!await db('/rest/v1/rpc/acquire_material_ai','POST',{p_model:model,p_owner:lease}))throw new ModelError(429,'莱克正在处理其他课件，马上继续。');
+export async function callModel({db,fetcher,key,messages,user,vision=false,paid=false,maxTokens=8192}){
+ const model=modelName(vision,paid),lease=crypto.randomUUID();let leaseModel=model;
+ if(paid){
+  const start=parseInt(lease.slice(0,2),16)%2,candidates=[model+'#'+(start+1),model+'#'+(2-start)];leaseModel='';
+  for(const candidate of candidates)if(await db('/rest/v1/rpc/acquire_material_ai','POST',{p_model:candidate,p_owner:lease})){leaseModel=candidate;break}
+  if(!leaseModel)throw new ModelError(429,'两条 AI 整理通道都在工作，马上继续。');
+ }else if(!await db('/rest/v1/rpc/acquire_material_ai','POST',{p_model:model,p_owner:lease}))throw new ModelError(429,'莱克正在处理其他课件，马上继续。');
  let ticket=null,actual=null,sent=false,r,data;const started=Date.now();
  try{
   if(paid){ticket=crypto.randomUUID();if(!await db('/rest/v1/rpc/reserve_material_ai_trial','POST',{p_id:ticket,p_user:user,p_model:model})){ticket=null;throw new ModelError(503,'本轮 ¥20 AI 测试预算已用完或暂停。资料已保留，请联系管理员。',false)}}
   sent=true;
-  r=await fetcher('https://open.bigmodel.cn/api/paas/v4/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,thinking:{type:'disabled'},stream:false,max_tokens:8192,response_format:{type:'json_object'},messages}),signal:AbortSignal.timeout(55000)});
+  r=await fetcher('https://open.bigmodel.cn/api/paas/v4/chat/completions',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,thinking:{type:'disabled'},stream:false,max_tokens:maxTokens,response_format:{type:'json_object'},messages}),signal:AbortSignal.timeout(55000)});
   data=await r.json();
   if(!r.ok){
    actual=0;const code=String(data.error?.code||'unknown').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,30);
@@ -32,6 +36,6 @@ export async function callModel({db,fetcher,key,messages,user,vision=false,paid=
  }catch(e){if(e instanceof ModelError)throw e;throw new ModelError(504,'AI 响应暂时中断，已保留进度，正在重试。')}
  finally{
   if(ticket)try{await db('/rest/v1/rpc/settle_material_ai_trial','POST',{p_id:ticket,p_actual:sent?actual:0})}catch{console.warn(JSON.stringify({event:'material_budget_settle_pending',ticket}))}
-  try{await db('/rest/v1/rpc/release_material_ai','POST',{p_model:model,p_owner:lease})}catch{}
+  try{await db('/rest/v1/rpc/release_material_ai','POST',{p_model:leaseModel,p_owner:lease})}catch{}
  }
 }
