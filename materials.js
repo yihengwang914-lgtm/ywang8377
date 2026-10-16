@@ -61,9 +61,9 @@ async function continueMaterials(){
   }
   const pending=state.files.map((file,index)=>({file,index})).filter(({file})=>!file.error&&!file.result&&file.plan&&file.plan.include!==false),includedTotal=state.files.filter(file=>file.plan&&file.plan.include!==false).length;let nextFile=0,retryError=null;
   // Save teaching text before glossary inference, so the conversation becomes available early.
-  let registerIndex=0;async function registerSource(){for(;;){const item=pending[registerIndex++];if(!item||epoch!==accountEpoch)return;const {file,index}=item;if(file.job)continue;try{const prepared=await materialRequest({action:'prepare',course:file.plan.course,week:file.plan.week,filename:file.path.split('/').pop(),parts:splitCoursewareText(file.text),batch:state.batch,file_index:index});file.job=prepared.job;file.status='课件已保存，可开始问答';await saveMaterialState();if(typeof loadLearningHistory==='function'&&!learningLoading&&!assistantBusy)loadLearningHistory(true)}catch(e){if([429,503,504,401].includes(e.status)||!e.status)throw e;file.error=e.message}}}
+  let registerIndex=0;async function registerSource(){for(;;){const item=pending[registerIndex++];if(!item||epoch!==accountEpoch)return;const {file,index}=item;if(file.job)continue;try{const prepared=await materialRequest({action:'prepare',course:file.plan.course,week:file.plan.week,filename:file.path.split('/').pop(),parts:splitCoursewareText(file.text),batch:state.batch,file_index:index});file.job=prepared.job;file.status='课件已保存，可开始问答';await saveMaterialState();if(typeof refreshLearningSources==='function')await refreshLearningSources()}catch(e){if([429,503,504,401].includes(e.status)||!e.status)throw e;file.error=e.message}}}
   await Promise.all([registerSource(),registerSource(),registerSource()]);
-  materialStatus('课件原文已保存，现在可以直接问莱克。词库会继续整理，刷新后可恢复。');
+  materialStatus('本批课件原文已保存。请在顶部选择这批课件对应的课程，即可开始问答；词库会继续整理。');
   async function processFile(){for(;;){const item=pending[nextFile++];if(!item)return;const {file,index}=item;
    if(epoch!==accountEpoch)return;while(assistantBusy){await new Promise(resolve=>setTimeout(resolve,500));if(epoch!==accountEpoch)return}file.status='正在生成词库';materialStatus('两份课件并行整理中 · '+state.files.filter(f=>f.result).length+' / '+includedTotal+' 已完成');renderMaterialProgress();
    try{

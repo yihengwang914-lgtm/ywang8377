@@ -51,7 +51,7 @@ function splitCoursewareText(text){
  if(parts.length>32)throw Error('课件文字过多，请拆分。');return parts;
 }
 async function loadMaterialScript(src,globalName){if(window[globalName])return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(Error('读取组件加载失败，请检查网络后重试。'));document.head.append(s)})}
-function inferMaterialWeek(name){const match=name.match(/(?:week|wk|lecture|lec|session|第)\s*[-_ .]*0*(\d{1,2})(?!\d)/i);const n=Number(match?.[1]);return n>=1&&n<=52?n:0}
+function inferMaterialWeek(name){const match=name.match(/(?:^|[^A-Za-z0-9])(?:week|wk|w|lecture|lec|session|第)\s*[-_ .]*0*(\d{1,2})(?!\d)/i);const n=Number(match?.[1]);return n>=1&&n<=52?n:0}
 async function unpackMaterials(selected){
  let files=[],ignored=[];let expanded=0;const supported=/\.(pdf|pptx|ppt|docx|txt|png|jpe?g|webp)$/i;
  for(const file of selected){

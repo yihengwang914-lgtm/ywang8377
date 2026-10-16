@@ -68,3 +68,10 @@ quiz, choice/short-answer feedback, review plan and recovery; browser checks at
 320/390/768/1440 pixels; mixed PDF/PPTX/DOCX ZIP with duplicate and reading exclusion.
 Manual integration scripts use disposable QA account/session files under `/tmp`,
 never production credentials or real students' coursework.
+
+
+### 2026-10-16 · 旧课件兼容与课程识别修复
+
+旧版本只保留生成的词库，任务清理后无法由词库还原完整课件。补回资料应导入原课件或用户自己的 Word 整理稿，只新增 `user_learning_sources` 与 `user_learning_chunks`，按用户和课程代码核对，避免重新生成或覆盖词汇、作答及复习进度。界面区分“词库存在”与“原文可问答”，后台整理时单独刷新来源元数据。
+
+课程识别排除参考文献中的作者年份和普通英文年份，统一 Canvas 同一课号资料包的课程，识别 `W1_Canvas` 等周次。阅读材料或待确认文件不再提前创建空课程。
