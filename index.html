@@ -35,16 +35,20 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 <link rel="stylesheet" href="responsive.css?v=3.6">
 <link rel="stylesheet" href="brand.css?v=3.4">
 <link rel="stylesheet" href="assistant.css?v=6.0">
-<link rel="stylesheet" href="studio.css?v=1.1">
+<link rel="stylesheet" href="studio.css?v=1.2">
 </head>
 <body>
 <header class="siteHeader">
   <a class="brand brandLockup" href="/" onclick="showHome();return false" aria-label="奇点 CourseLex AI 首页"><img src="assets/brand/courselex-mark.png" alt="" width="44" height="44"><span><strong>奇点</strong><small>CourseLex AI</small></span></a>
   <div class="top" id="userNav" hidden>
     <nav class="studyNav" aria-label="学习导航"><button class="active" onclick="navigateStudy('home',this)">首页</button><button onclick="navigateStudy('manager',this)">资料</button><button onclick="navigateStudy('unknown',this)">生词</button><button onclick="navigateStudy('known',this)">熟词</button></nav>
+        <details class="navMenu"><summary>账户 <span aria-hidden="true">⌄</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
+    <button class="linkbtn" onclick="showWelcomeGuide()">功能引导</button>
+    <button class="linkbtn" onclick="showMaterialsHelp()">上传帮助</button>
+    <button class="linkbtn" onclick="showOwnAI()">导入词表</button>
+    <button class="linkbtn" onclick="startDailyStudy(false,assistantScope==='all'?{}:{course:assistantScope})">背单词</button>
     <button id="syncState" class="sync compactSync off" onclick="syncNow()">未同步</button>
-    <details class="navMenu"><summary>账户 <span aria-hidden="true">⌄</span></summary><div class="navPanel" onclick="this.parentElement.open=false">
-    <a class="linkbtn" href="courselex-user-guide.pdf?v=7.1" target="_blank" rel="noopener">用户指南</a>
+    <a class="linkbtn" href="courselex-user-guide.pdf?v=7.2" target="_blank" rel="noopener">用户指南</a>
     <button class="linkbtn" onclick="showProfile()">我的资料</button>
     <button class="linkbtn" onclick="showInstall()">添加到桌面</button>
     <button class="linkbtn" onclick="logout()">退出</button>
@@ -241,12 +245,13 @@ function renderCurrent(){
 </script>
 <script src="courseware-reader.js?v=4.7"></script>
 <script src="upload.js?v=4.1"></script>
-<script src="materials.js?v=7.1"></script>
-<script src="learning-ui.js?v=1.2"></script>
+<script src="materials.js?v=7.2"></script>
+<script src="learning-ui.js?v=1.4"></script>
+<script src="welcome.js?v=1.0"></script>
 <script src="own-ai.js?v=3.9"></script>
 <script src="education-catalog.js?v=3.8"></script>
 <script src="shared-library.js?v=3.6"></script>
-<script src="accounts.js?v=4.2"></script>
+<script src="accounts.js?v=4.3"></script>
 <script src="install.js?v=3.1"></script>
 </body>
 </html>

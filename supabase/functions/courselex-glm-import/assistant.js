@@ -1,5 +1,5 @@
 import {callModel,ModelError} from './model.js';
-import {handleLearning,LearningError} from './learning.js';
+import {handleLearning,prepareLearningBanks,LearningError} from './learning.js';
 export function materialCourseCode(value){
  for(const m of String(value).matchAll(/(?:^|[^A-Za-z0-9])([A-Za-z]{2,6})[-_ ]?(\d{3,5})(?=$|[^A-Za-z0-9])/g)){
   const prefix=m[1],number=m[2],code=(prefix+number).toUpperCase();
@@ -32,20 +32,51 @@ export function classifyMaterialKind(path,preview,aiKind='uncertain'){
 function materialPathCourseCode(path){const parts=String(path||'').split(/[\\/]/),name=parts.pop()||'',folder=parts.join('/');return materialCourseCode(folder)||(classifyMaterialKind(path,'').kind==='reading'?'':materialCourseCode(name))}
 const uuid=v=>typeof v==='string'&&/^[a-f0-9-]{36}$/.test(v);
 class ErrorResponse extends Error{constructor(status,message,retryable=true){super(message);this.status=status;this.retryable=retryable}}
-export function createAssistant({env,fetch:fetcher=fetch,base,paid=false}){
+export function parseAssistantJson(content){
+ const raw=String(content||'').trim(),fenced=raw.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+ const json=fenced?fenced[1]:raw;
+ try{return JSON.parse(json)}catch(error){
+  // Some legacy JSON-mode models append a redundant final brace. Only remove
+  // surplus closing delimiters when the ENTIRE remaining object parses. Never
+  // complete missing text, extract a partial object, or alter quoted source text.
+  let candidate=json;
+  for(let n=0;n<3&&/[}\]]\s*$/.test(candidate);n++){
+   candidate=candidate.replace(/[}\]]\s*$/,'').trimEnd();
+   try{const value=JSON.parse(candidate);if(value&&typeof value==='object'&&!Array.isArray(value))return value}catch{}
+  }
+  // Correct only a terminal closing-delimiter suffix. All keys, values and
+  // quoted evidence stay byte-for-byte intact; unfinished strings/values and
+  // malformed structure anywhere else still fail JSON.parse and validation.
+  const suffix=json.match(/[}\]\s]+$/);
+  if(suffix){
+   const prefix=json.slice(0,-suffix[0].length),stack=[];let quoted=false,escaped=false,valid=true;
+   for(const ch of prefix){
+    if(quoted){if(escaped)escaped=false;else if(ch==='\\')escaped=true;else if(ch==='"')quoted=false}
+    else if(ch==='"')quoted=true;
+    else if(ch==='{'||ch==='[')stack.push(ch);
+    else if(ch==='}'||ch===']'){if(stack.pop()!==(ch==='}'?'{':'[')){valid=false;break}}
+   }
+   if(valid&&!quoted&&stack.length){
+    try{const value=JSON.parse(prefix+stack.reverse().map(ch=>ch==='{'?'}':']').join(''));if(value&&typeof value==='object'&&!Array.isArray(value))return value}catch{}
+   }
+  }
+  throw error;
+ }
+}
+export function createAssistant({env,fetch:fetcher=fetch,base,paid=false,defer}){
  const get=n=>env(n)||'';const origins=new Set(['https://www.courselexai.com','https://courselexai.com','https://yihengwang914-lgtm.github.io']);
  function key(name,fallback){try{return JSON.parse(get(name)).default||get(fallback)}catch{return get(fallback)}}
  async function db(path,method='GET',body,auth){const k=auth?key('SUPABASE_PUBLISHABLE_KEYS','SUPABASE_ANON_KEY'):key('SUPABASE_SECRET_KEYS','SUPABASE_SERVICE_ROLE_KEY');const r=await fetcher(get('SUPABASE_URL')+path,{method,headers:{apikey:k,'Content-Type':'application/json',Prefer:'return=representation',...(auth?{Authorization:auth}:k.startsWith('sb_')?{}:{Authorization:'Bearer '+k})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000)});const data=await r.json();if(!r.ok)throw new ErrorResponse(String(data.message).includes('QUOTA')?429:503,String(data.message).includes('QUOTA')?'今天的整理次数已用完，请明天再试。':'资料保存暂时中断，请稍后重试。');return data}
- async function model(messages,vision=false,user,maxTokens=8192){const data=await callModel({db,fetcher,key:get('GLM_API_KEY'),messages,user,vision,paid,maxTokens}),content=data.choices?.[0]?.message?.content;if(typeof content!=='string'||!content.trim())throw new ErrorResponse(422,'AI 没有返回完整内容，请重试。');try{return JSON.parse(content)}catch{throw new ErrorResponse(422,'AI 返回了不完整的内容，请重试。')}}
+ async function model(messages,vision=false,user,maxTokens=8192,options={}){const data=await callModel({db,fetcher,key:get('GLM_API_KEY'),messages,user,vision,paid,maxTokens,interactive:options.interactive===true,background:options.background===true}),content=data.choices?.[0]?.message?.content;if(data.choices?.[0]?.finish_reason&&data.choices[0].finish_reason!=='stop'||typeof content!=='string'||!content.trim())throw new ErrorResponse(422,'AI 没有返回完整内容，请重试。');try{return parseAssistantJson(content)}catch(error){const position=Number(error.message?.match(/position (\d+)/)?.[1]);console.warn(JSON.stringify({event:'learning_invalid_json',position,codepoint:Number.isFinite(position)?content.charCodeAt(position):null,length:content.length,fenced:content.trim().startsWith('```'),starts_object:content.trim().startsWith('{'),ends_object:content.trim().endsWith('}')}));throw new ErrorResponse(422,'AI 返回了不完整的内容，请重试。')}}
  return async req=>{
   if(req.method!=='POST')return base(req);
   const headers={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin','Access-Control-Allow-Origin':origins.has(req.headers.get('origin'))?req.headers.get('origin'):'https://www.courselexai.com'};const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers});
   try{
    if(req.headers.get('origin')&&!origins.has(req.headers.get('origin')))throw new ErrorResponse(403,'请从奇点网站使用此功能。');
    let length=0;const chunks=[];const reader=req.clone().body?.getReader();if(!reader)throw new ErrorResponse(400,'请求为空。');for(;;){const r=await reader.read();if(r.done)break;length+=r.value.length;if(length>1500000){await reader.cancel();throw new ErrorResponse(413,'资料过大，请分批上传。')}chunks.push(r.value)}let bytes=new Uint8Array(length),offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length}let data;try{data=JSON.parse(new TextDecoder().decode(bytes))}catch{throw new ErrorResponse(400,'请求无效。')}
-   if(!['start','organize','ocr','resume','include','chat','learning_history','learning_answer','learning_review','learning_task','learning_quiz_state'].includes(data.action))return base(req);
+   if(!['start','organize','ocr','resume','include','chat','learning_history','learning_answer','learning_review','learning_task','learning_quiz_state','learning_prepare'].includes(data.action)){const response=await base(req);if(defer&&response.ok&&data.action==='next'){const result=await response.clone().json();if(result.status==='completed'&&uuid(result.course))defer((async()=>{const auth=req.headers.get('authorization')||'',user=await db('/auth/v1/user','GET',undefined,auth);const [course]=await db('/rest/v1/user_courses?id=eq.'+result.course+'&user_id=eq.'+user.id+'&archived=eq.false','GET',undefined,auth);if(course)await prepareLearningBanks({db,model,user,auth,courses:[course]})})().catch(()=>{}))}return response;}
    const auth=req.headers.get('authorization')||'';if(!auth.startsWith('Bearer '))throw new ErrorResponse(401,'请先登录。');const user=await db('/auth/v1/user','GET',undefined,auth);if(!user.id||!user.email_confirmed_at)throw new ErrorResponse(401,'请先验证邮箱。');
-   if(['chat','learning_history','learning_answer','learning_review','learning_task','learning_quiz_state'].includes(data.action))return reply(await handleLearning({data,db,model,user,auth}));
+   if(['chat','learning_history','learning_answer','learning_review','learning_task','learning_quiz_state','learning_prepare'].includes(data.action))return reply(await handleLearning({data,db,model,user,auth,defer}));
    const path='/rest/v1/user_material_batches';
    if(data.action==='start'){
     if(!Array.isArray(data.files)||!data.files.length||data.files.length>60||data.files.some(f=>typeof f.name!=='string'||f.name.length>300||!Number.isInteger(f.size)||f.size<1||f.size>20*1024*1024))throw new ErrorResponse(400,'每批最多 60 个课件，每个课件不超过 20 MB。');

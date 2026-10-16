@@ -33,3 +33,57 @@ body{background:radial-gradient(ellipse 70% 45% at 50% 0,rgba(195,232,214,.24),t
 .authLayout .authPanel{margin:0;width:100%;padding:30px;box-shadow:0 18px 55px #204c3309}.authLayout .authPanel h2{font-size:22px;line-height:1.4;margin:0 0 25px;font-weight:600}.authLayout .authPanel label{font-size:12px;color:#526e5c;margin:17px 0 9px}.authLayout .authPanel input,.authLayout .authPanel select{font-size:14px;min-height:44px}.authLayout #authSubmit{width:100%;min-height:44px;margin-top:25px}.authLayout .uploadActions{margin-top:20px;justify-content:space-between}.authLayout .uploadActions .linkbtn{padding:8px 0;border:0;background:none;color:#648570;font-size:11px}.authLayout .notice:empty{display:none}.authLayout .meta{font-size:11px;line-height:1.8}.authLayout details{font-size:12px}.authLayout summary{cursor:pointer;line-height:1.8}
 @media(max-width:760px){.authLayout{grid-template-columns:1fr;gap:28px;padding:16px 0 24px;min-height:0;max-width:440px;margin:auto}.authEyebrow{margin-bottom:14px;font-size:10px}.authHero h1{font-size:32px;letter-spacing:-1px;margin-bottom:14px;max-width:none}.authHero p{font-size:12px;line-height:1.85;max-width:330px}.authLayout .authPanel{padding:24px}.authLayout .authPanel h2{font-size:20px;margin-bottom:22px}.authLayout .authPanel input,.authLayout .authPanel select{font-size:16px}.authLayout .uploadActions .linkbtn{min-height:44px}.authLayout .authPanel label{font-size:12px}}
 @media(max-width:360px){.authHero h1{font-size:29px}.authLayout .authPanel{padding:21px}}
+
+/* Focused chat: one identity, one composer, progressive disclosure. */
+.srOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+body{background:#f6f8f7}
+.siteHeader{height:72px;border:0;max-width:1120px}.siteHeader .navMenu summary{font-size:14px;padding:11px 15px;background:transparent}
+.navPanel .compactSync{border:0;border-radius:0;background:transparent;justify-content:flex-start;font-size:14px;padding:12px 14px}
+.assistantMode main{max-width:920px!important;padding:8px 28px 24px}.assistantMode .siteFooter{display:none}
+.assistantWorkspace{width:100%;min-height:calc(100dvh - 108px)}
+.lexWorkspaceHeader{height:auto;padding:0 0 12px;margin:0;min-height:48px}
+.lexControls{display:flex;width:100%;justify-content:space-between;gap:12px}.lexControls .coursePicker{min-width:0}.coursePicker[hidden]{display:none!important}
+.lexControls select{font-size:14px;min-width:145px!important;max-width:240px;padding:10px 28px 10px 0;background:transparent;border:0;border-radius:8px;box-shadow:none}
+.workspaceTools{display:flex;gap:6px;align-items:center;margin-left:auto}
+.lexControls .newChat{font-size:14px;min-height:42px;padding:9px 11px;gap:7px;color:#50655a}
+.dueReminder{border:1px solid #cfe2d6;border-radius:50%;background:#eaf3ee;color:#246e4f;min-width:36px;height:36px;font:600 14px inherit;cursor:pointer}
+.isEmpty .assistantBox{flex:none;margin-top:clamp(24px,10dvh,105px)}
+.isEmpty .assistantConversation{flex:none;min-height:0!important;max-height:none!important;padding:0;overflow:visible}
+.learningWelcome{padding:0 8px 30px;margin:0;text-align:center}
+.learningWelcome h2{font-size:36px;line-height:1.35;font-weight:600;letter-spacing:-1px;margin:0;color:#243f33}
+.assistantComposer{padding:20px 22px 14px;border-radius:24px;border-color:#dce5df;box-shadow:0 7px 28px #1b3f2b06;background:#fff}
+.assistantComposer textarea{font-size:17px;line-height:1.7;min-height:76px;padding:0 0 15px}
+.assistantComposer textarea::placeholder{color:#8a9a90}
+.attachButton{font-size:14px;min-height:44px;padding:8px;margin-left:-8px;gap:8px}.attachButton .lexIcon{width:19px;height:19px}
+.sendButton{width:42px;min-width:42px;height:42px;border-radius:50%;font-size:11px}.sendButton .lexIcon{width:22px;height:22px}
+.dataNote{font-size:12px;margin-top:12px;color:#5f7567}
+.learningStarters{display:flex!important;flex-wrap:wrap;justify-content:center;gap:10px;margin:18px 0 0}
+.learningStarters button{display:block;min-height:42px;padding:10px 15px;border-radius:999px;border:1px solid #e0e7e2;background:transparent;box-shadow:none;font-size:14px;font-weight:400;white-space:nowrap;text-align:center}
+.learningStarters button:hover{transform:none;background:#edf3ef;border-color:#cadbd0;box-shadow:none}
+.assistantUtilities{gap:16px;margin:18px auto 0}.assistantUtilities .linkbtn{font-size:13px;min-height:40px;color:#64796b;padding:8px 10px}
+.hasConversation .assistantConversation{padding:18px 2px 26px;gap:26px;min-height:230px!important;max-height:calc(100dvh - 330px)!important}
+.chatMessage{font-size:16px;line-height:1.85}.fromLex{padding:0 3px}.thinking{font-size:14px}.fromLex h3{font-size:18px}
+.learningQuiz h3{font-size:18px}.learningOptions button{font-size:15px;min-height:48px}.learningQuiz .meta,.quizLabel,.quizSummary{font-size:12px}
+.learningSources summary{font-size:12px}.learningSources blockquote{font-size:13px}
+.welcomeDialog{width:min(460px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:28px;border:1px solid #dce6df;border-radius:26px;color:#243f33;background:#fff;box-shadow:0 28px 100px #193d2926;overflow:auto}
+.welcomeDialog::backdrop{background:#172c234d;backdrop-filter:blur(5px)}
+.welcomeTop,.welcomeBottom,.welcomeActions{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.welcomeTop{font-size:13px;color:#6a8071}.welcomeSkip{font:inherit;font-size:14px;min-height:44px;padding:8px;border:0;background:none;color:#5b7464;cursor:pointer}
+.welcomeVisual{display:grid;place-items:center;width:66px;height:66px;margin:22px 0 24px;background:#edf5ef;border-radius:20px;color:#287553}.welcomeVisual .lexIcon{width:32px;height:32px;stroke-width:1.5}
+.welcomeDialog h2{font-size:26px;font-weight:600;line-height:1.4;margin:0 0 16px;letter-spacing:-.5px}
+.welcomeBody{font-size:17px;line-height:1.8;margin:0 0 16px}.welcomeDetail{font-size:14px;line-height:1.9;color:#62796b;margin:0 0 30px}
+.welcomeDots{display:flex;gap:6px}.welcomeDots i{width:6px;height:6px;background:#dce6df;border-radius:50%}.welcomeDots .current{width:20px;background:#277b56;border-radius:6px}
+.welcomeActions button{font-size:14px;min-height:44px;padding:10px 17px;border-radius:12px}
+@media(max-width:600px){
+ .siteHeader{height:64px;padding:0 20px}.siteHeader .brandLockup img{width:32px;height:32px}.siteHeader .brandLockup strong{font-size:16px}
+ .assistantMode main{padding:4px 16px 18px}.assistantWorkspace{min-height:calc(100dvh - 86px)}
+ .lexWorkspaceHeader{min-height:46px;padding-bottom:8px}.lexControls{gap:6px}.lexControls select{font-size:14px;min-width:115px!important;max-width:155px;padding-left:0}
+ .lexControls .newChat{padding:9px;min-width:42px}.lexControls .newChat .controlLabel{display:none}.workspaceTools{gap:4px}
+ .isEmpty .assistantBox{margin-top:clamp(30px,12dvh,100px)}.learningWelcome{padding-bottom:25px}.learningWelcome h2{font-size:28px;letter-spacing:-.8px}
+ .assistantComposer{padding:17px 18px 12px;border-radius:22px}.assistantComposer textarea{font-size:16px;min-height:78px}
+ .learningStarters{gap:8px;margin-top:16px}.learningStarters button{font-size:13px;padding:10px 13px}
+ .assistantUtilities{margin-top:14px}.hasConversation .assistantConversation{min-height:220px!important;max-height:calc(100dvh - 310px)!important}
+ .chatMessage{font-size:16px;max-width:90%}.fromLex{max-width:100%}.learningQuiz{padding:18px}.learningQuiz h3{font-size:17px;line-height:1.75}.learningOptions button{font-size:15px;line-height:1.7;padding:13px}
+ .welcomeDialog{padding:23px}.welcomeDialog h2{font-size:24px}.welcomeBody{font-size:16px}.welcomeDetail{font-size:14px}.welcomeActions{gap:7px}.welcomeActions button{padding:10px 14px}
+}
+@media(max-height:600px){.isEmpty .assistantBox{margin-top:16px}.learningWelcome{padding-bottom:18px}.learningWelcome h2{font-size:26px}.welcomeVisual{display:none}.welcomeDialog{padding:18px 22px}}

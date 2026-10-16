@@ -4,6 +4,8 @@
 
 上传课堂课件或 Canvas ZIP 后，在同一段对话里让莱克讲解知识点、整理重点、出题、批改并安排复习。每个账号和课程的数据隔离；选择题答案由服务器保存，提交前不下发给浏览器。讲解与批改附可核对的提取原文。旧词库、背词模式和进度继续保留。
 
+3.1 更新：首页集中到一个输入框，首次注册登录有三步可跳过的功能引导。课件导入后后台准备按账号、课程、周次和原文版本隔离的英文练习；先核对出处，再独立核对答案。普通练习优先从题库取题，提交前不下发答案。特定知识点、简答等请求仍按需生成。
+
 当前实现：`learning-ui.js`、`materials.js`、`assistant.css`、`studio.css` 和 `supabase/functions/courselex-glm-import/`。数据库增量见 `supabase/learning_assistant.sql`，部署、旧课件重新上传和恢复说明见 [MIGRATION.md](MIGRATION.md)。免费容量及 AI 预算说明见 [CAPACITY.md](CAPACITY.md)。
 
 - 单元与回归：`node --test tests/*.test.mjs`。

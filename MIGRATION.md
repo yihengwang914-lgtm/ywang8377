@@ -1,3 +1,15 @@
+## 3.1 英文题库、对话提速和首次引导（2026-10-16）
+
+增量按顺序应用 `supabase/interactive_ai_performance.sql`、`supabase/interactive_ai_lanes.sql`、`supabase/question_banks.sql`、`supabase/first_use_guide.sql`。已有库已应用同名迁移；不要重复执行建表脚本。保留 20 元共享测试预算与已有账本，新增模型费率不重置额度。
+
+部署 `courselex-glm-import` 的六个依赖文件：`index.ts`、`core.js`、`model.js`、`assistant.js`、`learning.js`、`question-bank.js`，保持 JWT 验证。对话使用 GLM-4-Air-250414，批量词表沿用原模型；对话和备题分通道。后台任务采用 `EdgeRuntime.waitUntil`，受平台时限限制；失败或中断有持久状态、租约与冷却，下次访问可恢复，不依赖用户电脑常开。
+
+题库表仅服务器可读写，客户端拿不到答案。来源增删或周次更改使相应版本失效；旧对话、已答题和复习记录保留。取题以请求编号原子预留，网络重试不会消耗另一组题。普通练习用预备题；指定主题或简答等请求仍可实时生成。题目、选项使用英文，解析可中文；模型核验仍需结合课件复核。
+
+原有账号迁移时不强制弹出新引导，可从“账户 → 功能引导”重看。新账号首次进入学习页显示三步引导，完成/跳过后记入自己的资料，浏览器本地也有按账号隔离的兜底记录。仅新增引导状态，不更改词库和学习进度。
+
+验证：`node --test tests/*.test.mjs`，`tests/question-bank-security.sql`（事务回滚），`scripts/test-studio-ui.mjs`。生产环境使用隔离测试账号验证预备题取回、答案隐藏、批改、幂等与刷新恢复；测试账号会在验收后移除。
+
 # CourseLex AI accounts rollout
 
 ## Data preservation

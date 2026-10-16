@@ -1,0 +1,32 @@
+begin;
+do $$ declare u uuid:=gen_random_uuid();v uuid:=gen_random_uuid();c uuid:=gen_random_uuid();o uuid:=gen_random_uuid();r uuid:=gen_random_uuid();b jsonb;q jsonb;again jsonb;version text:=repeat('a',64);
+begin
+ insert into auth.users(id,email,email_confirmed_at) values(u,'bank-a@example.invalid',now()),(v,'bank-b@example.invalid',now());
+ insert into public.user_courses(id,user_id,name,weeks) values(c,u,'Bank fixture',2);
+ assert public.claim_courselex_question_bank(v,c,0,version,o) is null;
+ b:=public.claim_courselex_question_bank(u,c,0,version,o);
+ assert b is not null;
+ assert public.claim_courselex_question_bank(u,c,0,version,gen_random_uuid()) is null;
+ update public.user_learning_question_banks set status='ready',locked_until='-infinity',lock_owner=null,
+ questions='[{"id":"1","answer":0},{"id":"2","answer":1},{"id":"3","answer":2},{"id":"4","answer":3},{"id":"5","answer":0}]' where id=(b->>'id')::uuid;
+ q:=public.take_courselex_questions(u,c,0,version,r,3);
+ assert jsonb_array_length(q)=3;
+ again:=public.take_courselex_questions(u,c,0,version,r,3);
+ assert q=again;
+ assert(select cursor=3 and available=2 from public.user_learning_question_banks where id=(b->>'id')::uuid);
+ assert public.take_courselex_questions(v,c,0,version,r,3) is null;
+ assert public.take_courselex_questions(u,c,1,version,r,3) is null;
+ assert public.take_courselex_questions(u,c,0,repeat('b',64),r,3) is null;
+ again:=public.take_courselex_questions(u,c,0,version,gen_random_uuid(),2);
+ assert again->0->>'id'='4';
+ b:=public.claim_courselex_question_bank(u,c,0,repeat('b',64),gen_random_uuid());
+ assert b->>'source_version'=repeat('b',64) and jsonb_array_length(b->'questions')=0;
+ update public.user_courses set archived=true where id=c;
+ assert public.take_courselex_questions(u,c,0,repeat('b',64),gen_random_uuid(),1) is null;
+ assert not has_table_privilege('authenticated','public.user_learning_question_banks','select');
+ assert not has_table_privilege('anon','public.user_learning_question_banks','select');
+ assert not has_function_privilege('authenticated','public.claim_courselex_question_bank(uuid,uuid,integer,text,uuid)','execute');
+ assert not has_function_privilege('authenticated','public.take_courselex_questions(uuid,uuid,integer,text,uuid,integer)','execute');
+ assert not has_function_privilege('anon','public.take_courselex_questions(uuid,uuid,integer,text,uuid,integer)','execute');
+end $$;
+rollback;

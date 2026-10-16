@@ -45,7 +45,7 @@ export function createHandler({env,fetch:fetcher=fetch,paid=false}){
   try{
    if(origin&&!origins.has(origin))throw new Failure(403,'请从奇点网站使用上传功能。');
    if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
-   if(req.method==='GET')return reply({configured:Boolean(value('GLM_API_KEY')),provider:'智谱 GLM',model:modelName(false,paid),vision_model:modelName(true,paid),paid_trial:paid,daily_limit:3,token_required:false});
+   if(req.method==='GET')return reply({configured:Boolean(value('GLM_API_KEY')),provider:'智谱 GLM',model:modelName(false,paid),chat_model:modelName(false,paid,true),prepared_practice:true,vision_model:modelName(true,paid),paid_trial:paid,daily_limit:3,token_required:false});
    if(req.method!=='POST')throw new Failure(405,'请求方式无效。');
    if(!value('GLM_API_KEY'))throw new Failure(503,'自动整理服务尚未启用。');
    const authorization=req.headers.get('authorization')||'';if(!authorization.startsWith('Bearer '))throw new Failure(401,'请先登录。');

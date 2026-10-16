@@ -55,7 +55,7 @@ async function loadAccountProfile(){
  return userProfile;
 }
 async function switchAccount(active){
- accountEpoch++;document.getElementById('wordEditor')?.remove?.();resetSharedLibraryAccount();answerBusy=false;stopActivityTracking();session=active;userProfile=null;isAdmin=false;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;currentCourse='';currentWeek=1;setSync(false);resetUploadAccount(active?.user.id||'');if(typeof resetMaterialsAccount==='function')resetMaterialsAccount(active?.user.id||'');
+ if(typeof resetWelcomeAccount==='function')resetWelcomeAccount();accountEpoch++;document.getElementById('wordEditor')?.remove?.();resetSharedLibraryAccount();answerBusy=false;stopActivityTracking();session=active;userProfile=null;isAdmin=false;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;currentCourse='';currentWeek=1;setSync(false);resetUploadAccount(active?.user.id||'');if(typeof resetMaterialsAccount==='function')resetMaterialsAccount(active?.user.id||'');
  document.getElementById('userNav').hidden=!active;
  const adminLink=document.getElementById('adminLink');if(adminLink)adminLink.hidden=true;
  if(!active)return showAuth();
@@ -101,7 +101,7 @@ async function saveProfile(event,required=false){
  try{
    if(userProfile)await sb('user_profiles?user_id=eq.'+session.user.id,{method:'PATCH',body:JSON.stringify(payload)});
    else await sb('user_profiles',{method:'POST',body:JSON.stringify({user_id:session.user.id,...payload})});
-   userProfile={user_id:session.user.id,...payload};resetSharedLibraryAccount();
+   userProfile={...userProfile,user_id:session.user.id,...payload,welcome_completed_at:userProfile?.welcome_completed_at||null};resetSharedLibraryAccount();
    if(required){app.innerHTML='<div class="empty">资料已保存，正在加载你的课程…</div>';if(await loadCloud()){resetUploadAccount(session.user.id);showHome();}else throw new Error('课程暂时无法同步');}
    else{showProfile(false);const n=document.getElementById('profileNotice');if(n)n.textContent='资料已保存';}
  }catch(e){const n=document.getElementById('profileNotice');if(n){n.textContent=e.message?.includes('duplicate')?'这个用户名已被使用，请换一个。':'保存失败：'+(e.message||'请稍后重试');n.className='notice danger'}}finally{if(button.isConnected)button.disabled=false;}
