@@ -35,7 +35,7 @@ input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);borde
 <link rel="stylesheet" href="responsive.css?v=3.6">
 <link rel="stylesheet" href="brand.css?v=3.4">
 <link rel="stylesheet" href="assistant.css?v=6.0">
-<link rel="stylesheet" href="studio.css?v=1.5">
+<link rel="stylesheet" href="studio.css?v=1.6">
 </head>
 <body>
 <header class="siteHeader">
@@ -77,10 +77,10 @@ const syncState=document.getElementById("syncState");
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 async function recordAnswer(status,selected=null){
- const word=current,epoch=accountEpoch;if(!word||!session||answerBusy)return;answerBusy=true;
+ const word=current,epoch=accountEpoch;if(!word||!session||answerBusy)return;answerBusy=true;document.querySelectorAll('.vocabularyScope select').forEach(el=>el.disabled=true);
  try{const saved=await sb('rpc/answer_courselex_word',{method:'POST',body:JSON.stringify({p_word:word.id,p_known:status==='known'})});
  if(epoch!==accountEpoch)return;Object.assign(word,saved);const cloud=words.find(w=>w.id===word.id);if(cloud)Object.assign(cloud,saved);progress[word.id]=status;answerBusy=false;showAnswerFeedback(status,selected);}
- catch(e){if(epoch===accountEpoch){answerBusy=false;alert('学习进度未保存，请重试：'+e.message)}}
+ catch(e){if(epoch===accountEpoch){answerBusy=false;document.querySelectorAll('.vocabularyScope select').forEach(el=>el.disabled=false);alert('学习进度未保存，请重试：'+e.message)}}
 }
 function setSync(ok){cloudOnline=ok;syncState.className="sync compactSync "+(ok?"on":"off");syncState.textContent=ok?"已同步":"未同步"}
 async function sb(path,opt={}){
@@ -148,15 +148,15 @@ function buildDistractors(cur){
  }
  return result;
 }
-function studyBackButton(){if(window.dailyStudy)return `<div class="sectionHead"><button class="back" onclick="showHome()">← 回到首页</button></div>`;return `<div class="sectionHead"><button class="back" onclick="showWeek(currentCourse,currentWeek)">← 返回上一页</button></div>`}
-function startStudy(mode){window.dailyStudy=false;
+function studyBackButton(){return `<div class="sectionHead studyToolbar"><button class="back" onclick="${window.dailyStudy?'showHome()':'showWeek(currentCourse,currentWeek)'}">${window.dailyStudy?'← 回到首页':'← 返回上一页'}</button>${typeof vocabularyStudyControls==='function'?vocabularyStudyControls():''}</div>`}
+function startStudy(mode){window.dailyStudy=false;vocabularyStudyOptions={course:currentCourse,week:currentWeek,count:100,mode};
  currentMode=mode;queue=shuffle(words.filter(x=>x.course===currentCourse&&Number(x.week)===Number(currentWeek)));qIndex=0;
  if(!queue.length){app.innerHTML=`${studyBackButton()}<div class="empty">本周还没有词汇。<br><br><button class="secondary" onclick="showManager('${currentCourse}',${currentWeek})">去导入</button></div>`;return}
  showQuestion();
 }
 function showQuestion(){document.body?.classList.remove('assistantMode');
  current=queue[qIndex];
- if(!current){if(window.dailyStudy){app.innerHTML=`<section class="study"><h1>这一轮，完成了。</h1><p>学过 ${queue.length} 个词，已根据答题情况安排下次复习。</p><button class="primary" onclick="showHome()">回到首页</button></section>`;window._view={type:'studyComplete'};return}showWeek(currentCourse,currentWeek);return}if(window.dailyStudy){currentCourse=current.course;currentWeek=current.week;}
+ if(!current){if(window.dailyStudy){app.innerHTML=`${studyBackButton()}<section class="study"><h1>这一轮，完成了。</h1><p>学过 ${queue.length} 个词，已根据答题情况安排下次复习。</p><button class="primary" onclick="showHome()">回到首页</button></section>`;window._view={type:'studyComplete'};return}showWeek(currentCourse,currentWeek);return}if(window.dailyStudy){currentCourse=current.course;currentWeek=current.week;}
  window._view={type:'study'};
  if(currentMode==="choice"){
    const distractors=buildDistractors(current);
@@ -244,10 +244,10 @@ function renderCurrent(){
 }
 </script>
 <script src="courseware-reader.js?v=4.8"></script>
-<script src="upload.js?v=4.2"></script>
-<script src="materials.js?v=7.5"></script>
-<script src="learning-ui.js?v=1.7"></script>
-<script src="course-workspace.js?v=1.0"></script>
+<script src="upload.js?v=4.3"></script>
+<script src="materials.js?v=7.6"></script>
+<script src="learning-ui.js?v=1.8"></script>
+<script src="course-workspace.js?v=1.1"></script>
 <script src="welcome.js?v=1.2"></script>
 <script src="own-ai.js?v=4.0"></script>
 <script src="education-catalog.js?v=3.8"></script>

@@ -1,3 +1,4 @@
+let vocabularyStudyOptions=null;
 let materialState=null,materialSelection=[],materialBusy=false,materialMessage='',materialPanelOpen=false,materialAutoResume=false,materialDraftTerms=null,materialRetryTimer=null,assistantConversation=[],assistantBusy=false,assistantConversationKey='',assistantScope='all',materialResetSerial=0;
 function materialDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open('courselex-materials-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('batches');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function saveMaterialState(){if(!materialState)return;try{const db=await materialDB();await new Promise((resolve,reject)=>{const t=db.transaction('batches','readwrite');t.objectStore('batches').put(materialState,materialState.uid);t.oncomplete=resolve;t.onerror=reject});db.close()}catch{materialState.localUnavailable=true}}
@@ -13,7 +14,7 @@ function restoreMaterialBatch(uid,local,remote){
  return state;
 }
 async function resetMaterialsAccount(uid){
- const serial=++materialResetSerial;if(typeof resetLearningAccount==='function')resetLearningAccount();if(materialRetryTimer){clearTimeout(materialRetryTimer);materialRetryTimer=null}materialState=null;materialSelection=[];materialBusy=false;materialMessage='';materialAutoResume=false;materialDraftTerms=null;assistantBusy=false;assistantConversation=[];assistantConversationKey=uid?'courselex-chat:'+uid:'';assistantScope=uid?sessionStorage.getItem('courselex-scope:'+uid)||'all':'all';if(!uid)return;
+ const serial=++materialResetSerial;vocabularyStudyOptions=null;if(typeof resetLearningAccount==='function')resetLearningAccount();if(materialRetryTimer){clearTimeout(materialRetryTimer);materialRetryTimer=null}materialState=null;materialSelection=[];materialBusy=false;materialMessage='';materialAutoResume=false;materialDraftTerms=null;assistantBusy=false;assistantConversation=[];assistantConversationKey=uid?'courselex-chat:'+uid:'';assistantScope=uid?sessionStorage.getItem('courselex-scope:'+uid)||'all':'all';if(!uid)return;
  const epoch=accountEpoch;let local,remote;
  try{const db=await materialDB();local=await new Promise((resolve,reject)=>{const r=db.transaction('batches').objectStore('batches').get(uid);r.onsuccess=()=>resolve(r.result);r.onerror=reject});db.close()}catch{}
  try{remote=await coursewareRequest({action:'resume'})}catch{}
@@ -27,7 +28,7 @@ function showAssistant(){return typeof renderStudyAssistant==='function'?renderS
 function clearLexConversation(){return clearLearningConversation()}
 function sendLexPrompt(text){const prompt=document.getElementById('materialPrompt');if(!prompt)return;prompt.value=text;prompt.form.requestSubmit()}
 function setAssistantScope(value){return changeLearningScope(value)}
-function renderMaterialAttachments(){const el=document.getElementById('materialAttachments');if(el)el.innerHTML=materialSelection.map((f,i)=>`<span class="attachmentChip"><span>${esc(f.name)}</span><button type="button" aria-label="移除 ${esc(f.name)}" onclick="removeMaterialSelection(${i})">×</button></span>`).join('');const button=document.getElementById('materialSend');if(button){button.classList.toggle('uploadSend',Boolean(materialSelection.length));button.setAttribute('aria-label',materialSelection.length?'上传并整理':'发送');button.innerHTML=materialSelection.length?'上传并整理':lexIcon('send')}const note=document.getElementById('materialConsent');if(note){note.hidden=!materialSelection.length;note.textContent='上传后，课件内容将由智谱 AI 处理，保存在你的账号。'}}
+function renderMaterialAttachments(){const el=document.getElementById('materialAttachments');if(el)el.innerHTML=materialSelection.map((f,i)=>`<span class="attachmentChip"><span>${esc(f.name)}</span><button type="button" aria-label="移除 ${esc(f.name)}" onclick="removeMaterialSelection(${i})">×</button></span>`).join('');const button=document.getElementById('materialSend');if(button){button.classList.toggle('uploadSend',Boolean(materialSelection.length));button.setAttribute('aria-label',materialSelection.length?'上传并整理':'发送');button.innerHTML=materialSelection.length?'上传并整理':lexIcon('send')}const note=document.getElementById('materialConsent');if(note){note.hidden=!materialSelection.length;note.textContent='上传后，课件内容将由DeepSeek AI 处理，保存在你的账号。'}}
 function selectMaterials(files){if(materialBusy)return;for(const file of Array.from(files))if(!materialSelection.some(f=>f.name===file.name&&f.size===file.size&&f.lastModified===file.lastModified))materialSelection.push(file);renderMaterialAttachments()}
 function removeMaterialSelection(index){if(materialBusy)return;materialSelection.splice(index,1);renderMaterialAttachments()}
 function renderMaterialNotice(){const el=document.getElementById('materialNotice');if(!el)return;el.textContent=materialMessage;el.hidden=!materialMessage||/^老师课件已准备好/.test(materialMessage)||Boolean(materialState&&materialState.stage!=='finished'&&materialBusy)}
@@ -84,7 +85,7 @@ async function continueMaterials(){
   // Make the detected course available before the slower glossary is finished.
   await loadCloud();if(epoch!==accountEpoch)return;
   const batchCourses=[...new Set(state.files.filter(f=>f.plan?.include!==false&&f.plan?.course).map(f=>f.plan.course))];
-  if(batchCourses.length===1&&!learningThread?.messages.length&&!assistantBusy&&assistantScope!==batchCourses[0])changeLearningScope(batchCourses[0]);
+  if(batchCourses.length===1&&!hasExplicitCourseScope()&&!learningThread?.messages.length&&!assistantBusy&&assistantScope!==batchCourses[0])changeLearningScope(batchCourses[0]);
   const pending=state.files.map((file,index)=>({file,index})).filter(({file})=>!file.error&&!file.result&&file.plan&&file.plan.include!==false),includedTotal=state.files.filter(file=>file.plan&&file.plan.include!==false).length;let nextFile=0,retryError=null;
   // Save teaching text before glossary inference, so the conversation becomes available early.
   let registerIndex=0;async function registerSource(){for(;;){const item=pending[registerIndex++];if(!item||epoch!==accountEpoch)return;const {file,index}=item;if(file.job)continue;try{const prepared=await materialRequest({action:'prepare',course:file.plan.course,week:file.plan.week,filename:file.path.split('/').pop(),parts:splitCoursewareText(file.text),batch:state.batch,file_index:index});file.job=prepared.job;file.status='课件已保存，可开始问答';await saveMaterialState();if(typeof refreshLearningSources==='function')await refreshLearningSources()}catch(e){if([429,503,504,401].includes(e.status)||!e.status)throw e;file.error=e.message}}}
@@ -104,7 +105,7 @@ async function continueMaterials(){
  }catch(e){if(epoch===accountEpoch){const retryable=e.retryable!==false&&([429,503,504].includes(e.status)||!e.status);if(retryable){materialStatus((e.message||'AI 连接暂时中断。')+' 已保留进度，10 秒后自动继续。');clearTimeout(materialRetryTimer);materialRetryTimer=setTimeout(()=>{materialRetryTimer=null;if(session?.user.id===state.uid&&!materialBusy&&state.stage!=='finished')continueMaterials()},10000)}else{state.autoPaused=true;clearTimeout(materialRetryTimer);materialRetryTimer=null;await saveMaterialState();materialStatus(e.message+' 进度已保存。解决以上问题后，可点击“继续整理”。')}}}finally{if(epoch===accountEpoch){materialBusy=false;if(window._view?.type==='home')showAssistant()}}
 }
 function startDailyStudy(unknownOnly=false,options={}){
- const pool=options.course?words.filter(w=>w.course===options.course&&(!options.week||w.week===options.week)):ownedStudyWords();const limit=Math.max(1,Math.min(100,options.count||20));
+ vocabularyStudyOptions={...options,unknownOnly};const pool=(options.course?words.filter(w=>w.course===options.course):ownedStudyWords()).filter(w=>!options.week||Number(w.week)===Number(options.week));const limit=Math.max(1,Math.min(100,options.count||20));
  if(!pool.length){materialStatus('先把自己的课件或词表放进来，莱克会帮你准备本课堂的第一轮。原来的资料仍保留在“我的学习资料”。');return showAssistant()}
  const now=Date.now(),status=w=>progress[w.id]||w.status;const review=pool.filter(w=>status(w)!=='new'&&(unknownOnly?status(w)==='unknown':options.course||!w.next_review_at||Date.parse(w.next_review_at)<=now)).sort((a,b)=>Date.parse(a.last_review_at||0)-Date.parse(b.last_review_at||0));const fresh=pool.filter(w=>status(w)==='new'||!status(w));
  const reviewLimit=Math.min(10,Math.ceil(limit/2));queue=unknownOnly?review.slice(0,limit):[...review.slice(0,reviewLimit),...fresh.slice(0,limit-Math.min(review.length,reviewLimit))];if(!unknownOnly&&queue.length<limit)queue.push(...review.slice(reviewLimit,reviewLimit+limit-queue.length));
@@ -158,3 +159,13 @@ function startStudyRequest(hint){
  if(request.course&&request.week&&!words.some(w=>w.course===request.course&&w.week===request.week))return materialStatus('这门课的 Week '+request.week+' 还没有词汇。请先上传这一周的课件。');
  return startDailyStudy(request.unknownOnly,request);
 }
+
+// Switching the range starts a fresh queue; already submitted answers stay saved.
+function vocabularyStudyControls(){
+ const options=vocabularyStudyOptions||{course:currentCourse,week:currentWeek,count:100,mode:currentMode},course=options.course||'',week=Number(options.week)||0;
+ const available=courseRows.filter(c=>!c.archived&&!c.is_shared_template),pool=words.filter(w=>(!course||w.course===course)&&available.some(c=>c.id===w.course)),weeks=[...new Set(pool.map(w=>Number(w.week)))].sort((a,b)=>a-b);
+ return `<div class="vocabularyScope"><label>课程<select id="vocabularyCourse" aria-label="背词课程" onchange="changeVocabularyRange(this.value,'0')"><option value="">全部课程</option>${available.map(c=>`<option value="${c.id}" ${c.id===course?'selected':''}>${esc(c.code||c.name)}</option>`).join('')}</select></label><label>Week<select aria-label="背词周次" onchange="changeVocabularyWeek(this.value)"><option value="0">全部周次</option>${weeks.map(w=>`<option value="${w}" ${week===w?'selected':''}>Week ${w}</option>`).join('')}</select></label></div>`;
+}
+function changeVocabularyRange(course,week){if(answerBusy)return;const old=vocabularyStudyOptions||{count:100,mode:currentMode};startDailyStudy(old.unknownOnly===true,{...old,course:course||undefined,week:Number(week)||undefined,mode:currentMode})}
+
+function changeVocabularyWeek(week){changeVocabularyRange(document.getElementById('vocabularyCourse').value,week)}

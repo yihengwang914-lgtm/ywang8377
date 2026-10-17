@@ -1,3 +1,11 @@
+## 3.3.2 DeepSeek、课程范围与 Week（2026-10-17）
+
+已应用 `20261017040457_deepseek_fast_trial_limits.sql`，保留 20 元预算和既有账本。配置服务器专用 `DEEPSEEK_API_KEY`；部署 `courselex-glm-import` 七个文件：index.ts、core.js、model.js、assistant.js、learning.js、question-bank.js、workspace.js，保留 JWT 验证。GET 元数据显示 DeepSeek，文本、预备题、批量词汇、图片识别统一走 deepseek-flash，无密钥回传。对话关闭思考模式，JSON 格式和输出上限保持受控。
+
+题目引用采用服务器给定片段 ID，仍校验课程、出处及正确答案；个别无效题目不再丢弃整组有效题。“出题带我复习吧”直接使用可用题库，指定知识点仍检索该课课件。选择“选择课程”后明确留在未选状态，不被单课程自动选择或晚到历史覆盖。背词页提供课程和 Week 筛选，已提交进度保留。
+
+验证包括单位测试、预算事务回滚、四种屏宽、延迟历史与刷新、真实 PDF/PPTX/DOCX ZIP → DeepSeek 讲解 → 英文题库 → 答案解析 → 复习计划 → 跨设备恢复，以及图片 OCR。历史章节保留用于追溯，不代表当前模型配置。
+
 ## 3.1 英文题库、对话提速和首次引导（2026-10-16）
 
 增量按顺序应用 `supabase/interactive_ai_performance.sql`、`supabase/interactive_ai_lanes.sql`、`supabase/question_banks.sql`、`supabase/first_use_guide.sql`。已有库已应用同名迁移；不要重复执行建表脚本。保留 20 元共享测试预算与已有账本，新增模型费率不重置额度。

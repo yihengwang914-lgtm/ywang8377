@@ -12,7 +12,7 @@ export function quizBankRequest(text){
  if(count>5)return null;
  const week=Number(text.match(/(?:week|wk|第)\s*(\d{1,2})\s*(?:周)?/i)?.[1])||0;if(week>52)return null;
  // Specific topics keep normal retrieval rather than silently returning generic questions.
- const remainder=text.replace(/(?:[A-Za-z]{2,6})?\d{3,5}/g,'').replace(/(?:week|wk|第)\s*\d{1,2}\s*(?:周)?/gi,'').replace(/根据|按照|基于|我的|这些|这门|这份|所有|课件|课程|内容|材料|知识点|给我|帮我|请|先不要|不要|透露|告诉|显示|答案|解析|逐题|一道一道|一道|理解|和|与|应用|综合|随机|英文|英语|四选一|单选|选择|练习|题目|问题|测试|开始|出|道|个|题|做|一|二|三|四|五|[1-5]|的|[，。！？、,.!?：:]/g,'').replace(/based on|my|the|lectures?|materials?|course|generate|give me|please|practice|quiz|questions?|understanding|and|application|one at a time|don't reveal answers/gi,'').replace(/\s/g,'').trim();
+ const remainder=text.replace(/(?:[A-Za-z]{2,6})?\d{3,5}/g,'').replace(/(?:week|wk|第)\s*\d{1,2}\s*(?:周)?/gi,'').replace(/根据|按照|基于|我的|带我|带着我|一起|复习|温习|一下|吧|现在|这些|这门|这份|所有|课件|课程|内容|材料|知识点|给我|帮我|请|先不要|不要|透露|告诉|显示|答案|解析|逐题|一道一道|一道|理解|和|与|应用|综合|随机|英文|英语|四选一|单选|选择|练习|题目|问题|测试|开始|出|道|个|题|做|一|二|三|四|五|[1-5]|的|[，。！？、,.!?：:]/g,'').replace(/based on|my|the|lectures?|materials?|course|generate|give me|please|practice|quiz|questions?|understanding|and|application|one at a time|don't reveal answers/gi,'').replace(/\s/g,'').trim();
  return remainder?null:{count,week};
 }
 export async function takePreparedQuestions({db,user,course,sources,text,request}){

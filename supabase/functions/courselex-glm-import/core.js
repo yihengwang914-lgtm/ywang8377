@@ -45,9 +45,9 @@ export function createHandler({env,fetch:fetcher=fetch,paid=false}){
   try{
    if(origin&&!origins.has(origin))throw new Failure(403,'请从奇点网站使用上传功能。');
    if(req.method==='OPTIONS')return new Response(null,{status:204,headers});
-   if(req.method==='GET')return reply({configured:Boolean(value('GLM_API_KEY')),provider:'智谱 GLM',model:modelName(false,paid),chat_model:modelName(false,paid,true),prepared_practice:true,vision_model:modelName(true,paid),paid_trial:paid,daily_limit:3,token_required:false});
+   if(req.method==='GET')return reply({configured:Boolean(value('DEEPSEEK_API_KEY')||value('GLM_API_KEY')),provider:value('DEEPSEEK_API_KEY')?'DeepSeek':'智谱 GLM',model:value('DEEPSEEK_API_KEY')?'deepseek-flash':modelName(false,paid),chat_model:value('DEEPSEEK_API_KEY')?'deepseek-flash':modelName(false,paid,true),prepared_practice:true,vision_model:value('DEEPSEEK_API_KEY')?'deepseek-flash':modelName(true,paid),paid_trial:paid,daily_limit:3,token_required:false});
    if(req.method!=='POST')throw new Failure(405,'请求方式无效。');
-   if(!value('GLM_API_KEY'))throw new Failure(503,'自动整理服务尚未启用。');
+   if(!value('DEEPSEEK_API_KEY')&&!value('GLM_API_KEY'))throw new Failure(503,'自动整理服务尚未启用。');
    const authorization=req.headers.get('authorization')||'';if(!authorization.startsWith('Bearer '))throw new Failure(401,'请先登录。');
    const user=await db('/auth/v1/user','GET',undefined,authorization);if(!user.id||!user.email_confirmed_at)throw new Failure(401,'请验证邮箱并重新登录。');
    if(!req.body)throw new Failure(400,'请求为空。');
@@ -79,11 +79,11 @@ export function createHandler({env,fetch:fetcher=fetch,paid=false}){
    }
    const rows=await update(job.id,{status:'processing'},'&status=eq.ready&cursor=eq.'+job.cursor);if(!rows.length)return reply({status:'processing',done:job.cursor,total:job.parts.length});claimed=job;
    if(job.cursor<job.parts.length){
-    const messages=[{role:'system',content:instruction},{role:'user',content:job.parts[job.cursor]}];let answer;try{answer=await callModel({db,fetcher,key:value('GLM_API_KEY'),messages,user:user.id,paid})}catch(error){if(error.status===422&&/\(1301\)/.test(error.message)){const total=await splitCurrentPart();if(total)return reply({status:'processing',done:job.cursor,total,message:'这一段未被模型接受，已自动拆小继续。'})}throw error}
+    const messages=[{role:'system',content:instruction},{role:'user',content:job.parts[job.cursor]}];let answer;try{answer=await callModel({db,fetcher,provider:value('DEEPSEEK_API_KEY')?'deepseek':'glm',key:value('DEEPSEEK_API_KEY')||value('GLM_API_KEY'),messages,user:user.id,paid})}catch(error){if(error.status===422&&/\(1301\)/.test(error.message)){const total=await splitCurrentPart();if(total)return reply({status:'processing',done:job.cursor,total,message:'这一段未被模型接受，已自动拆小继续。'})}throw error}
     async function splitCurrentPart(){const text=job.parts[job.cursor];if(text.length<1400||job.parts.length>=64)return false;const middle=Math.floor(text.length/2);const boundary=Math.max(text.lastIndexOf(' ',middle),text.lastIndexOf('\n',middle));const end=boundary>middle/2?boundary:middle;const parts=[...job.parts.slice(0,job.cursor),text.slice(0,Math.min(text.length,end+120)),text.slice(Math.max(0,end-120)),...job.parts.slice(job.cursor+1)];await update(job.id,{parts,status:'ready'});return parts.length;}
     if(answer.choices?.[0]?.finish_reason==='length'){const total=await splitCurrentPart();if(total)return reply({status:'processing',done:job.cursor,total,message:'内容较密，已自动拆成小段继续整理。'});}
     if(answer.choices?.[0]?.finish_reason!=='stop')throw new Failure(422,'AI 结果被截断，本次尚未入库，请拆分文件。');
-    let result;try{result=parseModelJson(answer.choices[0].message.content)}catch(error){answer=await callModel({db,fetcher,key:value('GLM_API_KEY'),messages:[{role:'system',content:instruction+' Your previous response was not valid JSON. Return one complete JSON object only.'},{role:'user',content:job.parts[job.cursor]}],user:user.id,paid});if(answer.choices?.[0]?.finish_reason!=='stop')throw error;result=parseModelJson(answer.choices[0].message.content)}
+    let result;try{result=parseModelJson(answer.choices[0].message.content)}catch(error){answer=await callModel({db,fetcher,provider:value('DEEPSEEK_API_KEY')?'deepseek':'glm',key:value('DEEPSEEK_API_KEY')||value('GLM_API_KEY'),messages:[{role:'system',content:instruction+' Your previous response was not valid JSON. Return one complete JSON object only.'},{role:'user',content:job.parts[job.cursor]}],user:user.id,paid});if(answer.choices?.[0]?.finish_reason!=='stop')throw error;result=parseModelJson(answer.choices[0].message.content)}
     if(result.complete===false||Array.isArray(result.terms)&&result.terms.length>200){const total=await splitCurrentPart();if(total)return reply({status:'processing',done:job.cursor,total,message:'内容较密，已自动拆成小段继续整理。'});}
     const terms=validateTerms(result,job.parts[job.cursor]).map(t=>({...t,source:'课件文字第 '+(job.cursor+1)+' 段'}));
     const combined=[...job.terms,...terms];if(combined.length>1500)throw new Failure(422,'词汇超过单次 1500 个上限，请拆分文件。');

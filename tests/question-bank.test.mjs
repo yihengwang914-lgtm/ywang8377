@@ -39,3 +39,5 @@ test('metadata exposes availability only, never questions or answer keys; stale 
  assert.deepEqual(await questionBankSummary({db,user,course,sources}),{status:'ready',available:5});assert.ok(!query.includes('select=status,cursor,questions'));
  assert.deepEqual(await questionBankSummary({db:async()=>[{source_version:'old',status:'ready',available:5}],user,course,sources}),{status:'queued',available:0});
 });
+
+test('conversational review wording uses the ready pool without discarding a requested topic',()=>{for(const text of ['出题带我复习吧','帮我出题复习一下','出题带着我一起复习吧'])assert.deepEqual(quizBankRequest(text),{count:3,week:0});assert.equal(quizBankRequest('出题带我复习议程设置吧'),null)});

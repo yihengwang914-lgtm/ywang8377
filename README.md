@@ -101,3 +101,5 @@ Course vocabulary website: https://www.courselexai.com/
 验收：`scripts/test-course-workspace.mjs` 使用临时测试账号运行真实笔记保存、冲突、课程草稿隔离、日历导出、syllabus AI 提取和计划状态同步。`tests/workspace-security.sql` 验证账号与课程隔离并回滚。研究依据与取舍见 `docs/product-research.md`。
 
 3.3.1：保留 Logo 返回首页；底部显示 @王大葱。首次恢复登录会向 Auth 验证账号是否仍存在，已清空账号的旧会话回到登录页。管理员身份配置独立于学习资料，只有原管理员邮箱重新验证后才能恢复后台权限。
+
+3.3.2：DeepSeek 统一处理对话、课件词汇、英文练习与图片识别。普通出题使用预备题库；修复课程取消选择后自动跳回，背词增加课程与 Week 切换；指南同步更新。保留共享 20 元测试上限与所有正式用户数据。
