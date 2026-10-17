@@ -1,3 +1,15 @@
+## 3.4.0 课程依据与整课概览（2026-10-17）
+
+依次应用 `20261017052727_course_overview_evidence.sql` 与 `20261017053421_learning_search_query_terms.sql`；两者均为 SECURITY INVOKER、按 auth.uid()/course/week 限定，匿名无执行权限。前者按周轮换选取最多60个文件的开头/中间/末尾文字段，后者按自然语言有效词 OR 排序并保留每文件多样性。旧线程、词库和进度不变。
+
+部署 courselex-glm-import 的原七个文件加 grounding.js，保持 JWT 验证。解释、概览和实质问答只展示结构化、带有效片段 ID 且通过独立相关性与语义核验的要点；原始 reply 不直接展示。现场题另外核验答案，复习任务核验不得虚构老师要求。核验不通过/原文缺失时保存明确的依据不足回复；修复格式至多重试一次。预备题继续使用已有的提前核验。
+
+公开消息增加 coverage（上传/选取/引用文件数和周次、未选取文件），不暴露私有答案。前端在回答下以可展开“依据与范围”展示；概览明确代表片段不是逐页审阅。现有课程对话中、首次发言中提及矛盾课号均拒绝，不送入另一个课程的材料。用户未选课程时先要求选择。通用问候和上传帮助由服务器直接回应。
+
+验证：122项单位测试；tests/overview-security.sql 事务回滚（13周覆盖、其他课程/账号不可读、长问题命中Week11）；真实DeepSeek测试 scripts/test-grounding-live.mjs；新用户完整ZIP学习旅程；scripts/test-grounding-browser.mjs 和 test-studio-ui.mjs 的四种屏宽、刷新恢复与依据说明。
+
+注意：模型语义核验仍可能出错。本功能核对检索到的片段，既不能保证每个结论绝对正确，也不能把未选取/未上传内容算作完整覆盖。上限60文件与约12000字概览证据保持明示。原20元总测试账本不重置。
+
 ## 3.3.2 DeepSeek、课程范围与 Week（2026-10-17）
 
 已应用 `20261017040457_deepseek_fast_trial_limits.sql`，保留 20 元预算和既有账本。配置服务器专用 `DEEPSEEK_API_KEY`；部署 `courselex-glm-import` 七个文件：index.ts、core.js、model.js、assistant.js、learning.js、question-bank.js、workspace.js，保留 JWT 验证。GET 元数据显示 DeepSeek，文本、预备题、批量词汇、图片识别统一走 deepseek-flash，无密钥回传。对话关闭思考模式，JSON 格式和输出上限保持受控。
