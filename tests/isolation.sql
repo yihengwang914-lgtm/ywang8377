@@ -41,13 +41,20 @@ insert into public.user_courses(id,name,weeks) values ('20000000-0000-4000-8000-
 select public.import_user_vocabulary('20000000-0000-4000-8000-000000000002',5,'[{"english":"term","chinese":"术语"}]');
 select public.import_user_vocabulary('20000000-0000-4000-8000-000000000002',5,'[{"english":"term","chinese":"术语"}]');
 do $$ begin assert (select count(*)=1 from public.user_vocabulary),'Repeated import duplicated'; end $$;
-set local request.jwt.claims='{"sub":"e7bd1aef-f8a6-4407-a41b-e86e4c9602e3","role":"authenticated"}';
-select public.migrate_legacy_vocabulary();
-do $$ begin
- assert public.is_courselex_admin(),'Owner is not administrator';
- assert (public.get_courselex_admin_dashboard()->'summary'->>'registered_users')::int >= 3,'Dashboard user total is invalid';
- assert (select count(*)=1736 from public.user_vocabulary where user_id='e7bd1aef-f8a6-4407-a41b-e86e4c9602e3'),'Migration lost owner words';
- assert (select count(*)=4 from public.user_courses where user_id='e7bd1aef-f8a6-4407-a41b-e86e4c9602e3'),'Migration lost owner courses';
+-- A synthetic administrator tests statistics without relying on the owner's deleted account.
+reset role;
+insert into courselex_private.admin_identities(email) values('courselex-test-admin@example.invalid');
+insert into auth.users(id,email,email_confirmed_at) values ('10000000-0000-4000-8000-000000000003','courselex-test-admin@example.invalid',now());
+set local role authenticated;
+set local request.jwt.claims='{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}';
+do $$ declare dashboard jsonb;entry jsonb;begin
+ assert public.is_courselex_admin(),'Verified fixture administrator was not restored';
+ dashboard:=public.get_courselex_admin_dashboard_v2();
+ assert (dashboard->'summary'->>'registered_users')::int >= 3,'Dashboard user total is invalid';
+ select value into entry from jsonb_array_elements(dashboard->'users') where value->>'email'='courselex-test-a@example.invalid';
+ assert entry->>'username'='Test A' and entry->>'school'='School A';
+ assert (entry->>'course_count')::int=1 and (entry->>'word_count')::int=1 and (entry->>'visit_count')::int=1;
+ assert (public.get_courselex_capacity()->>'database_bytes')::bigint>0;
 end $$;
 set local role anon;
 do $$ begin
@@ -55,5 +62,5 @@ do $$ begin
  begin perform count(*) from public.vocabulary_data;raise exception 'TEST FAILED: legacy archive exposed';exception when insufficient_privilege then null;end;
 end $$;
 reset role;
-select 'PASS: isolation, profiles, activity, admin denial, week integrity, import deduplication, legacy preservation, anonymous denial' as result;
+select 'PASS: isolation, profiles, activity, admin denial, week integrity, import deduplication, verified admin statistics, anonymous denial' as result;
 rollback;

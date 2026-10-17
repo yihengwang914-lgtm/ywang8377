@@ -55,7 +55,7 @@ function renderStudyAssistant(){
  renderLearningConversation();renderMaterialAttachments();renderMaterialNotice();renderMaterialProgress();renderLearningActionChoices();if(learningDrawer)renderLearningDrawer();if(keepFocus){prompt.focus?.({preventScroll:true});if(selection)prompt.setSelectionRange?.(...selection)}
  if(learningLoaded!==session.user.id+':'+assistantScope&&!learningLoading&&!learningError)loadLearningHistory();
  if(typeof maybeShowWelcome==='function')maybeShowWelcome();
- if(active&&!materialBusy&&!materialAutoResume){materialAutoResume=true;setTimeout(()=>{if(session?.user.id===materialState?.uid&&window._view?.type==='home')continueMaterials()},500)}
+ if(active&&!materialState.autoPaused&&!materialBusy&&!materialAutoResume){materialAutoResume=true;setTimeout(()=>{if(session?.user.id===materialState?.uid&&window._view?.type==='home')continueMaterials()},500)}
 }
 async function loadLearningHistory(force=false,threadId){
  if(!session||learningLoading||assistantBusy)return;const epoch=accountEpoch,scope=assistantScope,serial=++learningLoadSerial;let redraw=true;learningLoading=true;learningError='';

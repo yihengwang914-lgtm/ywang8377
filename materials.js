@@ -66,7 +66,7 @@ async function submitMaterials(event){
 async function chatWithLex(hint){return chatLearning(hint)}
 function applyLexAction(action={}){if(action.type==='choose_course')return showLearningCourseChoices();if(action.type==='quick_filter')return showStudyFilter();if(action.type==='show_materials')return showMaterialsLibrary();if(action.type==='show_upload_help')return showMaterialsHelp();if(action.type==='start_study'){const pieces=[action.course||'',action.week?'Week '+action.week:'',action.count?String(action.count)+'个词':'',action.unknown_only?'生词':''];return startStudyRequest(pieces.filter(Boolean).join(' '))}}
 async function continueMaterials(){
- if(materialBusy||!materialState)return;const state=materialState,epoch=accountEpoch;materialBusy=true;showAssistant();
+ if(materialBusy||!materialState)return;const state=materialState,epoch=accountEpoch;state.autoPaused=false;materialBusy=true;showAssistant();
  try{
   if(state.stage==='reading'){
    for(const file of state.files)if(obviousReadingMaterial(file.path)){file.prefilterKind='reading';file.status='阅读材料，已先跳过'}
@@ -101,7 +101,7 @@ async function continueMaterials(){
   }}
   await Promise.all([processFile(),processFile()]);if(retryError)throw retryError;
   if(epoch!==accountEpoch)return;state.stage='finished';await saveMaterialState();await loadCloud();coursewareRequest({action:'learning_prepare',scope:assistantScope}).catch(()=>{});const completed=state.files.filter(f=>f.result).length,skipped=state.files.filter(f=>f.plan?.include===false).length;materialStatus(completed?'老师课件已准备好'+(skipped?'，并跳过 '+skipped+' 份阅读或待确认材料':'')+'。莱克会提前准备练习题；现在也可以直接问知识点、要重点总结。':skipped?'这批文件暂未确认到老师课件，阅读材料已跳过；可在报告中手动确认。':'这批资料还没有成功整理，请查看报告中的原因，换一份可读课件再试。');
- }catch(e){if(epoch===accountEpoch){const retryable=[429,503,504].includes(e.status)||!e.status;if(retryable){materialStatus((e.message||'AI 连接暂时中断。')+' 已保留进度，10 秒后自动继续。');clearTimeout(materialRetryTimer);materialRetryTimer=setTimeout(()=>{materialRetryTimer=null;if(session?.user.id===state.uid&&!materialBusy&&state.stage!=='finished')continueMaterials()},10000)}else materialStatus(e.message+' 已保留进度，可点击“继续整理”。')}}finally{if(epoch===accountEpoch){materialBusy=false;if(window._view?.type==='home')showAssistant()}}
+ }catch(e){if(epoch===accountEpoch){const retryable=e.retryable!==false&&([429,503,504].includes(e.status)||!e.status);if(retryable){materialStatus((e.message||'AI 连接暂时中断。')+' 已保留进度，10 秒后自动继续。');clearTimeout(materialRetryTimer);materialRetryTimer=setTimeout(()=>{materialRetryTimer=null;if(session?.user.id===state.uid&&!materialBusy&&state.stage!=='finished')continueMaterials()},10000)}else{state.autoPaused=true;clearTimeout(materialRetryTimer);materialRetryTimer=null;await saveMaterialState();materialStatus(e.message+' 进度已保存。解决以上问题后，可点击“继续整理”。')}}}finally{if(epoch===accountEpoch){materialBusy=false;if(window._view?.type==='home')showAssistant()}}
 }
 function startDailyStudy(unknownOnly=false,options={}){
  const pool=options.course?words.filter(w=>w.course===options.course&&(!options.week||w.week===options.week)):ownedStudyWords();const limit=Math.max(1,Math.min(100,options.count||20));

@@ -133,3 +133,10 @@ body{background:#f6f8f7}
 .courseDialog[open]{display:flex;flex-direction:column;overflow:hidden}.courseDialog>header{flex-shrink:0}#courseDialogBody{overflow:auto;min-height:0;padding:0 1px}.courseDialog textarea{font-family:inherit}.courseDialog hr{border:0;border-top:1px solid #e2e9e4;margin:22px 0 12px}
 @media(hover:hover) and (pointer:fine){.saveNoteAction{opacity:0}.chatMessage:hover .saveNoteAction,.chatMessage:focus-within .saveNoteAction{opacity:1}}
 .workspaceNoteActions{position:sticky;bottom:0;padding:9px 0 0;background:#fbfcfb;border-top:1px solid #e4ebe6;z-index:1}
+/* Quiet author credit, including the fixed-height phone conversation layout. */
+.siteFooter .creatorCredit{font-size:11px;line-height:1.6;margin:3px 0 0;color:#778b80;letter-spacing:.1px}
+.assistantMode .siteFooter.signature{display:block;flex:none;margin:0;padding:0 16px calc(6px + env(safe-area-inset-bottom))!important}
+.assistantMode .siteFooter .brandTagline{display:none}.assistantMode .siteFooter .creatorCredit{margin:0}
+@media(min-width:601px){.assistantMode .assistantWorkspace{min-height:calc(100dvh - 134px)}}
+/* The old bottom navigation is hidden; auth and document pages need no reserved bar space. */
+body:not(.assistantMode) main{padding-bottom:32px}

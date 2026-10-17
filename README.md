@@ -99,3 +99,5 @@ Course vocabulary website: https://www.courselexai.com/
 数据库按顺序追加：`supabase/course_workspace.sql`、`supabase/course_workspace_task_sync.sql`、`supabase/course_workspace_planning.sql`。不改旧词库/原文，不重置进度。新表均启用 RLS 和归属外键，笔记更新带版本条件。部署前先更新数据库和 `courselex-glm-import`，再更新前端；函数必须包含 `workspace.js` 并保持 JWT 校验。
 
 验收：`scripts/test-course-workspace.mjs` 使用临时测试账号运行真实笔记保存、冲突、课程草稿隔离、日历导出、syllabus AI 提取和计划状态同步。`tests/workspace-security.sql` 验证账号与课程隔离并回滚。研究依据与取舍见 `docs/product-research.md`。
+
+3.3.1：保留 Logo 返回首页；底部显示 @王大葱。首次恢复登录会向 Auth 验证账号是否仍存在，已清空账号的旧会话回到登录页。管理员身份配置独立于学习资料，只有原管理员邮箱重新验证后才能恢复后台权限。

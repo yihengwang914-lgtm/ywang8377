@@ -68,6 +68,12 @@ async function switchAccount(active){
  if(!active)return showAuth();
  const epoch=accountEpoch;app.innerHTML='<div class="empty">正在加载你的课程…</div>';
  try{
+   const identity=await authClient.auth.getUser();if(epoch!==accountEpoch)return;
+   if(identity.error||!identity.data?.user||identity.data.user.id!==active.user.id){
+    const e=identity.error;if(e&&![401,403].includes(e.status)&&e.code!=='user_not_found')throw e;
+    if(e?.code==='user_not_found')await purgeDeletedAccountCache(active.user.id);
+    await authClient.auth.signOut({scope:'local'});if(epoch===accountEpoch)await switchAccount(null);return;
+   }
    await loadAccountProfile();
    if(epoch!==accountEpoch)return;
    startActivityTracking();
@@ -147,3 +153,8 @@ authClient.auth.onAuthStateChange((event,active)=>{
 app.innerHTML='<section class="assistantHero"><h1>正在打开你的学习空间…</h1></section>';
 
 function registrationProfileFields(){const fields=profileFields();const start=fields.indexOf('<label for="profileSchool">');return fields.slice(0,start)+'<details class="optionalEducation"><summary>学校与专业（选填，可稍后补充）</summary>'+fields.slice(start).replaceAll(' required','')+'</details>'}
+
+async function purgeDeletedAccountCache(uid){
+ for(const storage of [localStorage,sessionStorage])try{for(const key of Object.keys(storage))if(key.startsWith('courselex-')&&key.includes(uid))storage.removeItem(key)}catch{}
+ try{if(typeof indexedDB!=='undefined'){const db=await materialDB();await new Promise((resolve,reject)=>{const tx=db.transaction('batches','readwrite');tx.objectStore('batches').delete(uid);tx.oncomplete=resolve;tx.onerror=reject});db.close()}}catch{}
+}

@@ -14,6 +14,8 @@
 
 ## Data preservation
 
+Historical rollout record: on 2026-10-17 the owner explicitly requested deletion without backup of the two owner-designated test accounts. Those accounts, their associated coursework/progress and their exclusively owned legacy archive were cleared. The archive-preservation and personal-migration instructions below describe the original rollout, not recoverable data after this authorized reset. Other users and the shared AI cost ledger were preserved.
+
 The original `vocabulary_data` table remains intact (1,736 rows, pre-rollout fingerprint `22507d1359facccb90b6034e4096365e`). Its unsigned browser grants and permissive policy were removed. The original `studyProgress` local-storage key is never deleted or overwritten.
 
 New accounts use `user_courses`, `user_vocabulary`, and server-only `user_upload_jobs`. All user tables enforce ownership through RLS and composite foreign keys. Courses support 1–52 weeks; archiving preserves words and progress. A course cannot be shortened below a week containing words.
@@ -99,3 +101,5 @@ never production credentials or real students' coursework.
 按顺序应用 course_workspace、course_workspace_task_sync、course_workspace_planning 三份 SQL。新增 notes/events/links 表和 thread purpose；旧对话默认 study。任务同步扩展保留原有 service-only commit RPC 权限，客户端仍不能取得未作答的答案。新表按账号 RLS，课程与归属账号使用复合外键。没有复制、覆盖或删除旧资料的迁移步骤。
 
 回退前端时保留新表与列，旧功能仍可使用。若回退 Edge Function，保留 service-only commit RPC 即可；不运行 DROP TABLE、不还原用户笔记或进度。笔记版本冲突时保留本机编辑内容，由用户导出或另存，不自动选择覆盖方向。学校链接只允许 HTTPS，使用 noopener/noreferrer；不会收集学校登录密码。
+
+管理员身份延续：`supabase/admin_verified_identity.sql` 仅从现有已验证管理员建立私有邮箱配置，重新注册后必须再次验证邮箱才恢复原有管理权限。普通账号不会因自填信息获得权限。账号删除后的旧登录状态会回到登录页，而不是继续显示已不存在账号的资料。
