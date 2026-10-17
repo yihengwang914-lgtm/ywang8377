@@ -89,3 +89,13 @@ Course vocabulary website: https://www.courselexai.com/
 ## 两种词表整理方式
 
 首页同时提供“用自己的 AI 整理”和“API 自动整理”。前者复制提示词供用户在自己的 AI 中上传课件，支持粘贴两列词表及 TXT / TSV / JSON 文件导入；导入前预览并去重，不调用 AI API。后者保留原有课件自动整理和上传口令流程。两者都写入当前登录用户的词库，沿用同一云端学习进度。浏览器部署须包含 `own-ai.js`。
+
+## 3.3 · 从开学到考前的课程空间
+
+顶部“新对话”区分学习、作业辅导、考前复习，并提供独立的选课与学期规划入口。对话按课程保存；不同课程与话题不自动混用记忆，草稿也分别保存。后台课程推理只接收当前课程信息；跨课程规划是用户明确选择的独立话题，不会读取其他聊天记录。
+
+首页底部的“课程空间”统一收纳课件、笔记、日历和学校链接。讲解可存为笔记，支持自动保存、安全 Markdown 预览、导入/导出、本机草稿恢复及版本冲突保护。syllabus 可读取 PDF/DOCX/TXT、提取安排并在确认后写入日历；上课可按周重复，日历可导出 .ics。复习任务加入日历后，网页中的完成状态双向同步。外部日历导出是单次文件导入，非自动同步。邮箱 OAuth 自动同步按用户最新要求延后，不影响其他功能。
+
+数据库按顺序追加：`supabase/course_workspace.sql`、`supabase/course_workspace_task_sync.sql`、`supabase/course_workspace_planning.sql`。不改旧词库/原文，不重置进度。新表均启用 RLS 和归属外键，笔记更新带版本条件。部署前先更新数据库和 `courselex-glm-import`，再更新前端；函数必须包含 `workspace.js` 并保持 JWT 校验。
+
+验收：`scripts/test-course-workspace.mjs` 使用临时测试账号运行真实笔记保存、冲突、课程草稿隔离、日历导出、syllabus AI 提取和计划状态同步。`tests/workspace-security.sql` 验证账号与课程隔离并回滚。研究依据与取舍见 `docs/product-research.md`。

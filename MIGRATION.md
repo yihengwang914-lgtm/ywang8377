@@ -93,3 +93,9 @@ never production credentials or real students' coursework.
 3.2 不增加或改写业务表。部署 `courselex-glm-import` 的全部六个文件并保留 JWT 验证，然后一起发布带版本参数的前端。明确课程元数据可跳过模型分类；模糊文件仍走分类流程。复习接口可在验证课程与复习项目归属后直接创建对话，不把其他课程问题带入。新讲解和计划会暂停旧练习，未答题目仍可继续。
 
 浏览器本地保存上传原文件只用于中断恢复；云端保存任务、提取原文和结果。换设备能恢复已提交的任务与结果，尚未提交的原文件仍需重新选择。背景状态更新不重建正在阅读的对话，也不丢弃输入草稿。没有修改原用户词库、作答或学习进度。
+
+## 3.3 课程空间增量
+
+按顺序应用 course_workspace、course_workspace_task_sync、course_workspace_planning 三份 SQL。新增 notes/events/links 表和 thread purpose；旧对话默认 study。任务同步扩展保留原有 service-only commit RPC 权限，客户端仍不能取得未作答的答案。新表按账号 RLS，课程与归属账号使用复合外键。没有复制、覆盖或删除旧资料的迁移步骤。
+
+回退前端时保留新表与列，旧功能仍可使用。若回退 Edge Function，保留 service-only commit RPC 即可；不运行 DROP TABLE、不还原用户笔记或进度。笔记版本冲突时保留本机编辑内容，由用户导出或另存，不自动选择覆盖方向。学校链接只允许 HTTPS，使用 noopener/noreferrer；不会收集学校登录密码。

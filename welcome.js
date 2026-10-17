@@ -2,7 +2,7 @@ let welcomeStep=0,welcomeUser='',welcomeReturnFocus=null;
 const welcomeSteps=[
  {icon:'attach',title:'把课件交给莱克',body:'老师的 PDF、PPT、Word，或从 Canvas 下载的 ZIP，都可以直接上传。',detail:'莱克会按课程整理，优先使用课堂课件，阅读材料会单独列出。课件由智谱 AI 处理，保存在你的账号。'},
  {icon:'spark',title:'想学什么，直接说',body:'选一门课，问知识点、要重点总结，或者开始练习。',detail:'练习会提前准备。题目和选项用英文，提交后看正确答案和中文解析；也可以继续追问。'},
- {icon:'clock',title:'学过的，接着巩固',body:'错题会进入复习安排。对话和学习进度随账号保存。',detail:'从“记录”找回对话，从“学习资料”管理课件。背单词、导入词表等工具也都保留。'}
+ {icon:'clock',title:'学过的，接着巩固',body:'错题会进入复习安排。对话和学习进度随账号保存。',detail:'从“记录”找回每门课的对话。课程空间里可以写笔记、导入 syllabus、安排日历和打开学校链接。背单词也继续保留。'}
 ];
 function resetWelcomeAccount(){document.getElementById('welcomeDialog')?.remove();welcomeUser='';welcomeStep=0;welcomeReturnFocus=null}
 function maybeShowWelcome(){
