@@ -121,3 +121,22 @@ html[data-theme=dark] .appearanceOptions button[aria-pressed=true] { background:
   #appearanceLabel { display:none; }
   .siteHeader .appearanceControl>summary>span:first-child { font-size:20px; margin:0; }
 }
+
+/* Registration and recovery surfaces share the same theme and touch targets. */
+.authLayout .authPanel { background:var(--surface); border-color:var(--line); box-shadow:var(--shadow); }
+.authLayout .authPanel label,.authEyebrow { color:var(--text-soft); }
+.authLayout .authHero p,.authLayout .meta { color:var(--muted); font-size:13px; line-height:1.65; }
+.authLayout .authPanel :is(input,select) { color:var(--ink); background:var(--surface); border-color:var(--line); border-radius:12px; min-height:48px; font-size:16px; }
+.authLayout .authPanel input:focus,.authLayout .authPanel select:focus { outline:2px solid var(--focus); outline-offset:2px; border-color:var(--focus); }
+.authLayout .authPanel input[aria-invalid=true] { border-color:var(--red); }
+.authLayout .authPanel .optionalEducation { margin-top:20px; padding-top:12px; border-top:1px solid var(--line); }
+.authLayout .optionalEducation summary { display:flex; align-items:center; justify-content:space-between; gap:12px; list-style:none; min-height:44px; color:var(--text-soft); font-size:13px; }
+.authLayout .optionalEducation summary::-webkit-details-marker { display:none; }
+.authLayout .optionalEducation summary::after { content:''; width:8px; height:8px; flex:none; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; transform:rotate(45deg); margin:0 4px 4px; }
+.authLayout .optionalEducation[open] summary::after { transform:rotate(225deg); margin-top:6px; }
+.authLayout .uploadActions .linkbtn { color:var(--text-soft); font-size:14px; min-height:44px; }
+.authLayout .notice { font-size:14px; line-height:1.65; overflow-wrap:anywhere; }
+.authLayout .suggestions,.authLayout .suggestion { background:var(--surface-raised); color:var(--ink); }
+.authLayout .suggestion:hover,.authLayout .suggestion:focus { background:var(--surface-soft); }
+.authLayout #authSubmit { min-height:48px; font-size:16px; border-radius:12px; }
+@media(max-width:760px) { .authLayout { gap:20px; padding-top:8px; } .authLayout .authPanel { padding:22px 20px; } .authLayout .authHero h1 { font-size:28px; } .authLayout .authPanel label { font-size:14px; } }

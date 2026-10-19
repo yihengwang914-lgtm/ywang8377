@@ -12,9 +12,9 @@ function showAuth(mode='login'){
  document.body?.classList?.remove('assistantMode');
  document.getElementById('userNav').hidden=true;window._view={type:'auth'};
  const signup=mode==='signup',reset=mode==='reset';
- app.innerHTML=`<div class="authLayout"><section class="hero authHero"><div class="authEyebrow">莱克 Lex · AI 学习助理</div><h1>每一个知识点，<br>都是新的起点。</h1><p>上传课堂课件，和莱克一起理解知识、练习巩固、安排复习。</p></section><section class="panel authPanel"><h2>${signup?'邮箱注册':reset?'重置密码':'登录奇点'}</h2><form onsubmit="submitAuth(event,'${mode}')">
- <label for="authEmail">邮箱</label><input id="authEmail" type="email" autocomplete="email" required maxlength="254" value="${esc(signupEmail)}">
- ${reset?'':`<label for="authPassword">密码</label><input id="authPassword" type="password" autocomplete="${signup?'new-password':'current-password'}" minlength="8" required>`}
+ app.innerHTML=`<div class="authLayout"><section class="hero authHero"><div class="authEyebrow">莱克 Lex · AI 学习助理</div><h1>每一个知识点，<br>都是新的起点。</h1><p>上传课堂课件，和莱克一起理解知识、练习巩固、安排复习。</p></section><section class="panel authPanel"><h2>${signup?'邮箱注册':reset?'重置密码':'登录奇点'}</h2><form class="authForm" onsubmit="submitAuth(event,'${mode}')">
+ <label for="authEmail">邮箱</label><input id="authEmail" name="email" spellcheck="false" autocapitalize="none" type="email" autocomplete="email" required maxlength="254" value="${esc(signupEmail)}">
+ ${reset?'':`<label for="authPassword">密码</label><input id="authPassword" name="password" type="password" autocomplete="${signup?'new-password':'current-password'}" minlength="8" required>`}
  ${signup?'<p class="meta">密码至少 8 位。验证邮箱后即可保存学习进度。</p>'+registrationProfileFields():''}<button id="authSubmit" class="primary">${signup?'注册':reset?'发送重置邮件':'登录'}</button></form>
  <div id="authNotice" role="status" class="notice"></div><div class="uploadActions"><button class="linkbtn" onclick="showAuth('${signup||reset?'login':'signup'}')">${signup||reset?'返回登录':'创建账号'}</button>${!signup&&!reset?'<button class="linkbtn" onclick="showAuth(\'reset\')">忘记密码</button>':''}</div></section></div>`;
 }
@@ -29,9 +29,9 @@ async function submitAuth(event,mode){
  if(result.error)throw result.error;
  if(mode==='signup'){signupEmail=email;signupResendAt=Date.now()+60000;showSignupConfirmation();}
  if(mode==='reset')authNotice('若该邮箱已注册，重置邮件将发送至你的邮箱。');
- }catch(e){authNotice(friendlyAuthError(e),true);document.getElementById('authNotice')?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}finally{if(button.isConnected){button.disabled=false;button.textContent=label}}
+ }catch(e){authNotice(friendlyAuthError(e),true);if(/USERNAME_TAKEN|用户名已被使用/i.test(String(e?.message))){const field=document.getElementById('profileUsername');field?.setAttribute('aria-invalid','true');field?.setAttribute('aria-describedby','authNotice');field?.focus()}document.getElementById('authNotice')?.scrollIntoView?.({block:'nearest',behavior:'smooth'})}finally{if(button.isConnected){button.disabled=false;button.textContent=label}}
 }
-function friendlyAuthError(error){const text=String(error?.message||'');if(/invalid login credentials/i.test(text))return '邮箱或密码不正确，请核对后重试。';if(/email not confirmed/i.test(text))return '请先点击邮箱里的验证链接，再回来登录。';if(/rate limit|too many|security purposes/i.test(text))return '操作有些频繁，请稍等一分钟再试。';if(/error sending confirmation/i.test(text))return '验证邮件暂时未能发送，请稍后重试。';if(/fetch|network|timeout/i.test(text))return '连接暂时中断，请检查网络后重试。';return text||'暂时无法连接，请稍后重试。'}
+function friendlyAuthError(error){const text=String(error?.message||'');if(/USERNAME_TAKEN|用户名已被使用/i.test(text))return '这个用户名已被使用，请换一个用户名；邮箱和其他资料不用重填。';if(/Database error saving new user/i.test(text))return '注册资料暂时未能保存，请稍后重试；若仍失败，请联系我们检查，不必反复提交。';if(/invalid login credentials/i.test(text))return '邮箱或密码不正确，请核对后重试。';if(/email not confirmed/i.test(text))return '请先点击邮箱里的验证链接，再回来登录。';if(/rate limit|too many|security purposes/i.test(text))return '操作有些频繁，请稍等一分钟再试。';if(/error sending confirmation/i.test(text))return '验证邮件暂时未能发送，请稍后重试。';if(/fetch|network|timeout/i.test(text))return '连接暂时中断，请检查网络后重试。';return text||'暂时无法连接，请稍后重试。'}
 function showSignupConfirmation(){
  app.innerHTML=`<section class="panel authPanel signupConfirmation"><h2>验证邮箱，开始学习</h2><p>请打开 <strong>${esc(signupEmail)}</strong> 的验证邮件，点击里面的链接。</p><p class="meta">没看到？也检查一下垃圾邮件。若已有账号，直接登录即可。</p><button class="primary" onclick="showAuth('login')">已验证，去登录</button><button class="linkbtn" id="signupResend" onclick="resendSignup()">重新发送验证邮件</button><button class="linkbtn" onclick="showAuth('signup')">邮箱填错了？重新填写</button><div id="authNotice" role="status" class="notice"></div></section>`;
  window.scrollTo?.({top:0,behavior:'smooth'});
@@ -96,7 +96,7 @@ async function switchAccount(active){
    else throw new Error('暂时无法同步');
  }catch(e){if(epoch===accountEpoch)app.innerHTML='<div class="panel"><h2>暂时无法同步</h2><p>请检查网络后重试，课程、资料与词库仍保存在云端。</p><button class="primary" onclick="switchAccount(session)">重试</button><button class="linkbtn" onclick="logout()">退出</button></div>';}
 }
-function profileFields(data=null){return ` <label for="profileUsername">用户名</label><input id="profileUsername" autocomplete="nickname" minlength="2" maxlength="40" required value="${esc(data?.username||'')}">
+function profileFields(data=null){return ` <label for="profileUsername">用户名</label><input id="profileUsername" name="username" oninput="this.removeAttribute('aria-invalid')" autocomplete="nickname" minlength="2" maxlength="40" required value="${esc(data?.username||'')}">
  <label for="profileSchool">学校</label><div class="schoolPicker"><input id="profileSchool" autocomplete="off" minlength="2" maxlength="120" required value="${esc(data?.school||'')}" placeholder="任何地区学校均可填写，支持中英文搜索" oninput="showSchoolSuggestions(this.value)" onfocus="showSchoolSuggestions(this.value)" onblur="setTimeout(hideSchoolSuggestions,180)"><div id="schoolSuggestions" class="suggestions" hidden></div></div>
  <label for="profileDegree">学历</label><select id="profileDegree" required onchange="showMajorSuggestions()"><option value="">请选择</option>${[['Bachelor','本科 · Bachelor'],['Master','硕士 · Master'],['Doctorate','博士 · Doctorate / PhD'],['Associate','专科 · Associate'],['Diploma','文凭 · Diploma'],['Other','其他 · Other']].map(([v,l])=>`<option value="${v}" ${data?.degree===v?'selected':''}>${l}</option>`).join('')}</select>
  <label for="profileMajor">专业</label><div class="schoolPicker"><input id="profileMajor" minlength="2" maxlength="120" required value="${esc(data?.major||'')}" placeholder="输入专业名，或选择下方推荐" oninput="showMajorSuggestions(this.value)" onfocus="showMajorSuggestions(this.value)"><div id="majorSuggestions" class="suggestions" hidden></div></div><p class="meta" id="majorHint">按学校和学历匹配已核对的专业；没有推荐时可自由填写。</p>
