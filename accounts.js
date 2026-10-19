@@ -42,6 +42,8 @@ function showPasswordReset(){
 }
 async function updatePassword(event){event.preventDefault();const {error}=await authClient.auth.updateUser({password:document.getElementById('newPassword').value});if(error)return authNotice(error.message,true);recoveryMode=false;await switchAccount(session);}
 async function logout(){
+ if(typeof flushWorkspace==='function'&&!await flushWorkspace())return;
+ if(typeof flushStudySync==='function')await flushStudySync();
  recoveryMode=false;
  const {error}=await authClient.auth.signOut();if(error)return alert('退出失败：'+error.message);
  if(session)await switchAccount(null);
@@ -61,10 +63,22 @@ async function loadAccountProfile(){
  const adminLink=document.getElementById('adminLink');if(adminLink)adminLink.hidden=!isAdmin;
  return userProfile;
 }
+function consumeAuthRedirectError(){
+ const hash=String(location.hash||'');if(!hash)return '';
+ const params=new URLSearchParams(hash.slice(1));
+ if(!params.has('error')&&!params.has('error_code'))return '';
+ // Never display provider descriptions or retain authentication details in the URL.
+ globalThis.history?.replaceState(null,'',location.pathname+(location.search||''));
+ return params.get('error_code')==='otp_expired'
+  ?'邮件链接已失效或已使用。请重新发送所需的验证或重置邮件，并使用最新邮件中的链接。'
+  :'邮件验证未完成。请重新发送所需的验证或重置邮件后再试。';
+}
 async function switchAccount(active){
  if(typeof resetWelcomeAccount==='function')resetWelcomeAccount();accountEpoch++;document.getElementById('wordEditor')?.remove?.();resetSharedLibraryAccount();answerBusy=false;stopActivityTracking();session=active;userProfile=null;isAdmin=false;words=[];progress={};COURSES={};courseRows=[];queue=[];current=null;currentCourse='';currentWeek=1;setSync(false);resetUploadAccount(active?.user.id||'');if(typeof resetMaterialsAccount==='function')resetMaterialsAccount(active?.user.id||'');
  document.getElementById('userNav').hidden=!active;
  const adminLink=document.getElementById('adminLink');if(adminLink)adminLink.hidden=true;
+ const redirectError=consumeAuthRedirectError();
+ if(redirectError){document.getElementById('userNav').hidden=true;showAuth('reset');authNotice(redirectError,true);return;}
  if(!active)return showAuth();
  const epoch=accountEpoch;app.innerHTML='<div class="empty">正在加载你的课程…</div>';
  try{

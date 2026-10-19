@@ -1,0 +1,123 @@
+/* SINQ reading surfaces: neutral charcoal, comfortable text, unchanged source images. */
+:root {
+  --surface:#fff; --surface-soft:#edf3ef; --surface-raised:#fff;
+  --text-soft:#52685d; --accent:#167454; --accent-soft:#e3efe8;
+  --paper:#fffef8; --paper-ink:#344e3d; --paper-rule:#91aa7d50;
+  --focus:#398264; --shadow:0 12px 36px #183c2912;
+}
+html[data-theme="dark"] {
+  --bg:#212121; --ink:#ececec; --muted:#b4b4b4; --line:#515151;
+  --card:#292929; --dark:#ececec; --green:#8ac7ab; --red:#f2a29b;
+  --surface:#292929; --surface-soft:#303030; --surface-raised:#383838;
+  --text-soft:#d2d2d2; --accent:#bdbdbd; --accent-soft:#3b3b3b;
+  --paper:#242424; --paper-ink:#ececec; --paper-rule:#a0a0a040;
+  --focus:#d0d0d0; --shadow:0 12px 36px #00000026;
+  --ui-text:var(--ink); --ui-muted:var(--muted); --ui-line:var(--line);
+  --ui-accent:var(--accent); --ui-soft:var(--surface-soft);
+  color-scheme:dark;
+}
+body { line-height:1.65; }
+button,input,select,textarea { font-family:inherit; }
+button,summary,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
+:is(button,summary,a,input,textarea,select):focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+::selection { background:var(--accent-soft); color:var(--ink); }
+.appearanceControl { position:relative; margin-left:auto; margin-right:8px; flex:none; }
+.appearanceControl>summary { display:flex; align-items:center; gap:7px; min-height:44px; padding:8px 12px; cursor:pointer; list-style:none; color:var(--text-soft); font-size:13px; border:1px solid transparent; border-radius:12px; }
+.appearanceControl>summary::-webkit-details-marker { display:none; }
+.appearanceControl>summary:hover,.appearanceControl[open]>summary { background:var(--surface-soft); }
+.appearancePanel { position:absolute; top:calc(100% + 6px); right:0; z-index:250; width:min(280px,calc(100vw - 32px)); padding:16px; background:var(--surface-raised); color:var(--ink); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); }
+.appearancePanel strong { display:block; font-size:14px; margin-bottom:12px; }
+.appearanceOptions { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+.appearanceOptions button { min-height:44px; padding:8px 4px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--text-soft); font-size:13px; cursor:pointer; }
+.appearanceOptions button[aria-pressed=true] { background:var(--accent-soft); color:var(--ink); border-color:var(--accent); font-weight:600; }
+.appearancePanel p { font-size:12px; line-height:1.6; color:var(--muted); margin:12px 0 0; }
+.siteHeader .appearanceControl>summary { padding:8px 10px; font-size:13px; }
+.appearancePanel { box-sizing:border-box; }
+.siteHeader:has(.appearanceControl[open]) { position:relative; z-index:260!important; }
+.fromLex { line-height:1.85; overflow-wrap:anywhere; }
+.fromLex p,.fromLex li { max-width:72ch; }
+.fromLex h2,.fromLex h3 { line-height:1.5; letter-spacing:0; }
+.fromLex :is(p,ul,ol)+:is(h2,h3) { margin-top:1.5em; }
+.learningSources summary { min-height:40px; align-items:center; }
+.noteReadView { line-height:1.85; }
+.noteReadView :is(p,li) { max-width:75ch; }
+.studyPickerMenu,.courseMenu,.navPanel { box-shadow:var(--shadow); }
+.pickerOptions button,.courseMenu button,.navPanel .linkbtn { min-height:42px; }
+html[data-theme=dark] body { background:var(--bg); color:var(--ink); }
+html[data-theme=dark] :is(.brandLockup,.lexIntro strong,.notebookHeader strong,.noteReadView h1,.noteReadView h2,.noteReadView h3,.word,.answer) { color:var(--ink)!important; }
+html[data-theme=dark] :is(.panel,.course,.week,.study,.study.feedback .panel,.assistantComposer,.navPanel,.courseDialog,.learningDrawer,.welcomeDialog,.readingPane,.notebookPanel,.lexFloatingPanel,.courseMenu,.studyPickerMenu,.learningMore>div,.workspaceAdvanced>div,.noteMoreTools>div,.homeToolMenu,.suggestions,dialog,.sharedLibraryCard,.noteItem,.noteImageFigure) { background:var(--surface)!important; color:var(--ink)!important; border-color:var(--line)!important; box-shadow:var(--shadow); }
+html[data-theme=dark] :is(input,select,textarea,.secondary,.back,.choice,.study .choice,.studyPicker>summary,.courseSwitcher>summary,.fileDropControl,.uploadFile,.guideChoices button,.learningOptions button,.starterPrompts button,.learningStarters button,.readerEmptyActions .secondary,.noteFormatTools button,.noteFormatTools summary,.annotationTools button,.annotationTools select,.noteAnnotationDialog footer button,.noteAnnotationDialog header button) { background-color:var(--surface)!important; color:var(--ink)!important; border-color:var(--line)!important; }
+html[data-theme=dark] :is(input,textarea)::placeholder { color:var(--muted); opacity:1; }
+html[data-theme=dark] :is(.learningSidebar,.learningMenuDrawer,.notebookChrome,.mobileNoteControls,.workspaceNoteActions,.learningNavigation,.workspaceTabs,.notebookMobileViews,.splitMobileTabs,.readerViewToggle,.noteViewSwitch,.homeResume,.skillGuide,.learningQuiz,.learningPlan,.materialNotice,.batchSummary,.lexIntro,.welcomeVisual,.learningOptions button span,.guideMark,.starterIcon,.fileControlIcon,.sourceFileIcon) { background:var(--surface-soft)!important; color:var(--ink)!important; border-color:var(--line)!important; }
+html[data-theme=dark] :is(.fromUser,.guideUser,.materialAttachments span,.attachmentChip,.learningError[role=status]) { background:var(--accent-soft)!important; color:var(--ink)!important; border-color:var(--line)!important; }
+html[data-theme=dark] :is(.fromLex,.assistantComposer textarea,.learningNavigation>button,.workspaceTabs button,.drawerTabs button,.threadItem,.courseMenu button,.pickerOptions button,.homeToolMenu button,.learningMore button,.navPanel .linkbtn,.siteHeader .navMenu summary,.newChat,.notebookPanel .newChat,.readingPane>header button,.noteViewSwitch button,.notebookMobileViews button,.splitMobileTabs button) { background:transparent!important; color:var(--text-soft)!important; border-color:var(--line)!important; }
+html[data-theme=dark] :is(.fromLex,.noteReadView) { color:var(--ink)!important; }
+html[data-theme=dark] :is(.newChat,.linkbtn,.attachButton,.saveNoteAction,.guideClose,.welcomeSkip,.mobileStudyMenu,.sidebarHeading button,.sidebarBottom button,.drawerAccount,.studySyncStatus button,.readerScopeShortcut) { color:var(--text-soft)!important; }
+html[data-theme=dark] :is(.meta,.code,.signature,.siteFooter,.creatorCredit,.learningContext,.learningSources,.learningSources small,.workspaceHint,.studySyncStatus,#noteSaveStatus,.pickerCaption,.notebookHeader small,.sidebarScroll h2,.sidebarScroll p,.learningMenuDrawer h2,.learningMenuDrawer p,.empty,.uploadHint,.guideHint) { color:var(--muted)!important; }
+html[data-theme=dark] :is(.learningSources summary,.learningContext button,.noteReadView a,.notice) { color:var(--accent)!important; }
+html[data-theme=dark] :is(.primary,.sendButton,.lexOrb,.guideChoices .primaryChoice,.noteAnnotationDialog footer button:first-child) { background:#ececec!important; color:#212121!important; border-color:#ececec!important; box-shadow:none; }
+html[data-theme=dark] :is(.learningNavigation>button.active,.workspaceTabs button.active,.drawerTabs button.selected,.noteViewSwitch button[aria-pressed=true],.notebookMobileViews button[aria-pressed=true],.readingPane>header button.active,.sidebarScroll .selected,.learningSidebar nav .sidePrimary,.learningMenuDrawer nav .sidePrimary,.pickerOptions button[aria-current=true],.noteFormatTools .noteTidy) { background:var(--accent-soft)!important; color:var(--ink)!important; border-color:var(--line)!important; }
+html[data-theme=dark] :is(.courseMenu button,.pickerOptions button,.homeToolMenu button,.learningMore button,.navPanel .linkbtn,.learningSidebar button,.learningMenuDrawer button,.choice,.study .choice,.learningOptions button,.learningStarters button,.guideChoices button,.secondary):hover { background:var(--surface-raised)!important; color:var(--ink)!important; }
+html[data-theme=dark] :is(.learningSources blockquote,.noteReadView blockquote,.fromLex code,.noteReadView pre,.noteReadView code,.noteReadView th) { background:var(--surface-soft)!important; color:var(--text-soft)!important; border-color:var(--line)!important; }
+html[data-theme=dark] :is(.item,.list,.lexWorkspaceHeader,.learningSources,.learningContext,.readingPane>header,.readingPane>footer,.notebookHeader,.lexFloatingHeader,.noteReadView th,.noteReadView td) { border-color:var(--line)!important; }
+html[data-theme=dark] :is(.noteSurface,.noteSurface .noteCanvas,#noteSurface #noteBody,#noteSurface #noteTextBody) { background-color:var(--paper)!important; color:var(--paper-ink)!important; border-color:var(--line)!important; }
+html[data-theme=dark] #noteTitle { background:transparent!important; color:var(--ink)!important; border-color:var(--line)!important; }
+html[data-theme=dark] .noteSurface[data-paper=ruled] .noteCanvas { background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,var(--paper-rule) 27px,var(--paper-rule) 28px); }
+html[data-theme=dark] .noteSurface[data-paper=dots] .noteCanvas { background-image:radial-gradient(var(--paper-rule) .8px,transparent .9px); }
+html[data-theme=dark] .noteSurface[data-paper=grid] .noteCanvas { background-image:linear-gradient(var(--paper-rule) 1px,transparent 1px),linear-gradient(90deg,var(--paper-rule) 1px,transparent 1px); }
+html[data-theme=dark] :is(.learningError,.dueReminder,#noteConflict) { background:#432d28; color:#f1c4b9; border-color:#936f62; }
+html[data-theme=dark] :is(.danger,.uploadStatus.error) { color:var(--red)!important; }
+html[data-theme=dark] :is(.readerSlides img,.lecturePdf,.noteImageFigure img,.annotationCanvas) { /* Source pixels stay faithful; no invert filter. */ color-scheme:light; }
+html[data-theme=dark] dialog::backdrop { background:#0009; }
+html[data-theme=dark] :is(.sidebarHeading,.learningSidebar nav button,.sidebarScroll section>button,.learningMenuDrawer button,.lexFloatingHeader strong,.fileDropControl strong,.courseDialog label,.guideReply) { color:var(--text-soft)!important; }
+html[data-theme=dark] :is(.guideFootnote,.composerHint,.dataNote,.fileDropControl small,.lexFloatingHeader span,.homeToolMenu small) { color:var(--muted)!important; }
+html[data-theme=dark] :is(.sidebarReopen,.homeTools>summary) { background:var(--surface); color:var(--ink); border-color:var(--line); }
+html[data-theme=dark] :is(.assistantComposer:focus-within,.courseSwitcher[open]>summary) { box-shadow:0 0 0 2px var(--accent-soft); border-color:var(--accent)!important; }
+@media(max-width:560px) {
+  .appearanceControl>summary { padding:8px; font-size:12px; }
+  .appearanceControl { margin-right:2px; }
+  .appearancePanel { position:fixed; top:calc(env(safe-area-inset-top) + 68px); right:16px; }
+  .fromLex { font-size:16px; line-height:1.85; }
+  .learningSources,.workspaceHint { font-size:13px; }
+  .noteFormatTools { row-gap:8px; }
+  .siteHeader .appearanceControl>summary { padding:8px 6px; font-size:12px; }
+  .appearancePanel { max-height:calc(100dvh - 100px); overflow:auto; }
+}
+@media(prefers-reduced-motion:reduce) { .course,.week,.learningStarters button { transition:none; } }
+
+/* Quiet chrome and readable content, shared by desktop and compact layouts. */
+html[data-theme=dark] :is(.learningSidebar,.learningMenuDrawer) { background:#181818!important; }
+html[data-theme=dark] .assistantComposer { background:#303030!important; box-shadow:none; }
+html[data-theme=dark] :is(.noteItem small,.calendarItem small,.calendarItem.isDone strong,.workspaceEmpty,.conversationPurpose,.pickerChevron,.homeResume>span:first-child) { color:var(--muted)!important; }
+html[data-theme=dark] :is(.calendarImportLimit h3,.schoolLink,.sampleLesson summary,.lexFloatingHeader button,.courseDialog header button) { color:var(--ink)!important; }
+html[data-theme=dark] :is(.calendarItem,.calendarTrialTools,.courseDialog>header,.sampleLesson details,.sidebarBottom) { border-color:var(--line)!important; }
+html[data-theme=dark] :is(.courseDialog #eventError,.uploadStatus.error) { color:var(--red)!important; }
+html[data-theme=dark] :is(.learningSources summary,.noteReadView a,.schoolLink) { color:#c8ddef!important; }
+html[data-theme=dark] :is(input,textarea,select) { caret-color:var(--ink); }
+html[data-theme=dark] :is(input[type=checkbox],input[type=radio]) { accent-color:#bdbdbd; }
+html[data-theme=dark] .appearanceOptions button[aria-pressed=true] { background:#474747; border-color:#bdbdbd; }
+:is(.fromLex,.noteReadView) :is(pre,table) { max-width:100%; overflow-x:auto; }
+:is(.fromLex,.noteReadView) pre { padding:14px; border-radius:10px; white-space:pre; }
+:is(.fromLex,.noteReadView) table { display:block; border-collapse:collapse; }
+:is(.fromLex,.noteReadView) :is(th,td) { padding:9px 12px; text-align:left; line-height:1.6; }
+:is(.fromLex,.noteReadView) a { text-underline-offset:3px; }
+.calendarItem strong,.noteItem { overflow-wrap:anywhere; }
+.appearanceOptions button { box-sizing:border-box; }
+@media(max-width:600px) {
+  .courseDialog { padding:18px!important; max-height:calc(var(--mobile-view-height,100dvh) - 24px); }
+  .courseDialog :is(input:not([type=checkbox]):not([type=radio]),textarea,select),.lexFloatingPanel .assistantComposer textarea { font-size:16px!important; }
+  .courseDialog>header { gap:8px; margin-bottom:14px; padding-bottom:12px; }
+  .courseDialog h2 { font-size:20px!important; line-height:1.4; }
+  .courseDialog>header button { flex:none; min-width:44px; min-height:44px; }
+  .calendarItem label { min-width:0; line-height:1.7; }
+  .calendarItem small,.noteItem small { font-size:13px; line-height:1.7; }
+  .workspaceRow { row-gap:10px; }
+  .workspaceRow>* { min-width:0; }
+  .noteFormatTools :is(button,summary),.saveNoteAction { min-height:44px; }
+  .saveNoteAction { display:inline-flex; align-items:center; font-size:13px; }
+  .fromLex :is(h2,h3) { font-size:18px; }
+  .noteReadView :is(h1,h2,h3) { line-height:1.5; overflow-wrap:anywhere; }
+  .siteHeader .appearanceControl>summary { min-width:44px; justify-content:center; }
+  #appearanceLabel { display:none; }
+  .siteHeader .appearanceControl>summary>span:first-child { font-size:20px; margin:0; }
+}

@@ -8,7 +8,7 @@ function dateTime(value){if(!value)return '暂无';return new Intl.DateTimeForma
 function duration(seconds){seconds=Number(seconds)||0;if(seconds<60)return seconds+' 秒';const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60);return h?h+' 小时 '+m+' 分钟':m+' 分钟'}
 async function adminRpc(name){
  const {data:{session},error}=await adminClient.auth.getSession();
- if(error||!session)throw new Error('请先在 CourseLex AI 学习网站登录管理员账号。');
+ if(error||!session)throw new Error('请先在 SINQ 学习网站登录管理员账号。');
  const response=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:'{}'});
  if(!response.ok){let detail;try{detail=await response.json()}catch{}throw new Error(response.status===401||response.status===403?'当前账号没有管理员权限。':detail?.message||'后台数据加载失败');}
  return response.json();

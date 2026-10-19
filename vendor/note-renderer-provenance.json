@@ -1,0 +1,26 @@
+[
+  {
+    "package": "marked",
+    "version": "18.0.14",
+    "upstream": {
+      "url": "git+https://github.com/markedjs/marked.git",
+      "type": "git"
+    },
+    "tarball": "https://registry.npmjs.org/marked/-/marked-18.0.14.tgz",
+    "integrity": "sha512-mBHK6FBHuBAlhgRe88w9F0O1AbwwXJUcQibUbC/QcdTbVGAD7aWza+xt3N6oT/jCZx3/OMeS+8rnuiHZcQ9s7A==",
+    "bundle_sha256": "21568877a938d2c4e7d74e27f18e60da96bb73a68809610ca39216e1efebae62",
+    "bundled": "vendor/marked-18.0.14.js"
+  },
+  {
+    "package": "dompurify",
+    "version": "3.4.17",
+    "upstream": {
+      "url": "git://github.com/cure53/DOMPurify.git",
+      "type": "git"
+    },
+    "tarball": "https://registry.npmjs.org/dompurify/-/dompurify-3.4.17.tgz",
+    "integrity": "sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==",
+    "bundle_sha256": "cd37898f9782adf54820c413191b5691803f0f137c799d6edcfd38523b4c2c31",
+    "bundled": "vendor/dompurify-3.4.17.js"
+  }
+]
